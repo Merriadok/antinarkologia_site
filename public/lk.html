@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мой кабинет — АНТИНаркология</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- Шапка -->
+  <header class="topbar">
+    <div class="topbar-logo"><a href="/" style="text-decoration:none;color:inherit">АНТИ<span style="color:var(--c-accent)">Нарко</span>логия</a></div>
+    <div class="topbar-user">
+      <span id="topbar-name">—</span>
+      <button class="btn btn-outline btn-sm" onclick="Auth.logout()">Выйти</button>
+    </div>
+  </header>
+
+  <!-- Боковая панель -->
+  <nav class="sidebar" id="sidebar">
+    <button class="sidebar-item active" data-page="bookings">
+      <span class="icon">📋</span> Мои записи
+    </button>
+    <button class="sidebar-item" data-page="new-booking">
+      <span class="icon">➕</span> Записаться
+    </button>
+    <button class="sidebar-item" data-page="support">
+      <span class="icon">🤝</span> Сопровождение
+    </button>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-section">Аккаунт</div>
+    <button class="sidebar-item" data-page="profile">
+      <span class="icon">👤</span> Профиль
+    </button>
+    <button class="sidebar-item" onclick="Auth.logout()" style="color:var(--c-muted)">
+      <span class="icon">🚪</span> Выйти
+    </button>
+  </nav>
+
+  <!-- Основной контент -->
+  <main class="main-content" id="main"></main>
+
+</div>
+
+<!-- Модалки -->
+<div id="modal-root"></div>
+
+<script src="/static/api.js"></script>
+<script src="/static/lk.js"></script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вход — АНТИНаркология</title>
+<link rel="stylesheet" href="/static/app.css">
+<style>
+  .anon-hint {
+    background: #f8f7f4;
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--c-muted);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .anon-hint strong { color: var(--c-text); }
+</style>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <h1>АНТИ<span>Нарко</span>логия</h1>
+      <p id="auth-subtitle">Личный кабинет</p>
+    </div>
+
+    <div id="alert-box"></div>
+
+    <!-- Переключатель режимов входа -->
+    <div class="auth-tabs" id="mode-tabs">
+      <button class="auth-tab active" data-mode="login">Войти</button>
+      <button class="auth-tab" data-mode="register">Зарегистрироваться</button>
+    </div>
+
+    <!-- Форма входа -->
+    <form id="form-login">
+      <div class="form-group">
+        <label class="form-label">Email или логин</label>
+        <input class="form-input" id="login-identity" type="text" placeholder="email@example.com или ваш логин" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Пароль</label>
+        <input class="form-input" id="login-password" type="password" autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-full btn-lg" id="btn-login">Войти</button>
+    </form>
+
+    <!-- Форма регистрации (скрыта по умолчанию) -->
+    <form id="form-register" style="display:none">
+      <!-- Подрежимы регистрации -->
+      <div class="auth-tabs" style="margin-bottom:14px;" id="reg-mode-tabs">
+        <button type="button" class="auth-tab active" data-regmode="email">По email</button>
+        <button type="button" class="auth-tab" data-regmode="anon">Анонимно</button>
+      </div>
+
+      <!-- Email-регистрация -->
+      <div id="reg-email-fields">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="reg-email" type="email" placeholder="your@email.com" autocomplete="email">
+          <div class="form-hint">На него придёт подтверждение записи</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Пароль</label>
+          <input class="form-input" id="reg-password" type="password" placeholder="Минимум 6 символов" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Как к вам обращаться? <span style="color:var(--c-muted);font-weight:400">(необязательно)</span></label>
+          <input class="form-input" id="reg-name" type="text" placeholder="Имя или псевдоним">
+        </div>
+      </div>
+
+      <!-- Анонимная регистрация -->
+      <div id="reg-anon-fields" style="display:none">
+        <div class="anon-hint">
+          <strong>Полная анонимность:</strong> никакой почты и телефона. Придумайте логин и пароль — и запомните их, восстановить будет нельзя.
+        </div>
+        <div class="form-group">
+          <label class="form-label">Логин (придумайте любой)</label>
+          <input class="form-input" id="reg-login" type="text" placeholder="Например: tiger2025" autocomplete="off" spellcheck="false">
+          <div class="form-hint">Минимум 3 символа. Используйте латиницу или цифры.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Пароль</label>
+          <input class="form-input" id="reg-anon-password" type="password" placeholder="Минимум 6 символов" autocomplete="new-password">
+          <div class="form-hint">⚠ Пароль нельзя восстановить — сохраните его сами</div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg" id="btn-register">Создать аккаунт</button>
+
+      <div class="auth-divider">или войдите через</div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn btn-outline btn-full" onclick="oauthLogin('vk')">ВКонтакте</button>
+        <button type="button" class="btn btn-outline btn-full" onclick="oauthLogin('google')">Google</button>
+        <button type="button" class="btn btn-outline btn-full" onclick="oauthLogin('yandex')">Яндекс</button>
+      </div>
+      <p style="text-align:center;font-size:12px;color:var(--c-muted);margin-top:10px;">OAuth будет добавлен в ближайшем обновлении</p>
+    </form>
+
+    <p style="text-align:center;margin-top:18px;font-size:13px;color:var(--c-muted);">
+      <a href="/">← На главную</a>
+    </p>
+  </div>
+</div>
+
+<script src="/static/api.js"></script>
+<script>
+// Проверяем — может уже авторизован
+Auth.me().then(user => {
+  if (!user) return
+  const params = new URLSearchParams(location.search)
+  window.location.href = params.get('role') === 'consultant' ? '/consultant.html' : '/lk.html'
+})
+
+// Проверяем, нужна ли консультантская страница
+const params = new URLSearchParams(location.search)
+if (params.get('role') === 'consultant') {
+  document.getElementById('auth-subtitle').textContent = 'Панель консультанта'
+}
+
+// ---- Переключение режимов ----
+let mode = 'login'
+let regMode = 'email'
+
+$$('[data-mode]').forEach(btn => {
+  btn.onclick = () => {
+    mode = btn.dataset.mode
+    $$('[data-mode]').forEach(b => b.classList.toggle('active', b === btn))
+    document.getElementById('form-login').style.display    = mode === 'login'    ? '' : 'none'
+    document.getElementById('form-register').style.display = mode === 'register' ? '' : 'none'
+  }
+})
+
+$$('[data-regmode]').forEach(btn => {
+  btn.onclick = () => {
+    regMode = btn.dataset.regmode
+    $$('[data-regmode]').forEach(b => b.classList.toggle('active', b === btn))
+    document.getElementById('reg-email-fields').style.display = regMode === 'email' ? '' : 'none'
+    document.getElementById('reg-anon-fields').style.display  = regMode === 'anon'  ? '' : 'none'
+  }
+})
+
+// ---- Вход ----
+document.getElementById('form-login').onsubmit = async (e) => {
+  e.preventDefault()
+  const identity = document.getElementById('login-identity').value.trim()
+  const password = document.getElementById('login-password').value
+  const btn = document.getElementById('btn-login')
+  const alertBox = document.getElementById('alert-box')
+
+  if (!identity || !password) { showAlert(alertBox, 'error', 'Заполните все поля'); return }
+
+  setLoading(btn, true, 'Входим...')
+  try {
+    const isEmail = identity.includes('@')
+    const body = isEmail ? { email: identity, password } : { login: identity, password }
+    // Консультант входит через отдельный endpoint
+    const isConsultant = params.get('role') === 'consultant'
+    const endpoint = isConsultant ? '/auth/login/consultant' : '/auth/login'
+    await API.post(endpoint, isEmail ? { email: identity, password } : { login: identity, password })
+    window.location.href = isConsultant ? '/consultant.html' : (params.get('next') || '/lk.html')
+  } catch (err) {
+    showAlert(alertBox, 'error', err.message)
+  } finally {
+    setLoading(btn, false)
+  }
+}
+
+// ---- Регистрация ----
+document.getElementById('form-register').onsubmit = async (e) => {
+  e.preventDefault()
+  const btn = document.getElementById('btn-register')
+  const alertBox = document.getElementById('alert-box')
+
+  setLoading(btn, true, 'Создаём аккаунт...')
+  try {
+    if (regMode === 'email') {
+      const email    = document.getElementById('reg-email').value.trim()
+      const password = document.getElementById('reg-password').value
+      const name     = document.getElementById('reg-name').value.trim()
+      if (!email || !password) throw new Error('Заполните email и пароль')
+      await API.post('/auth/register/email', { email, password, display_name: name || undefined })
+    } else {
+      const login    = document.getElementById('reg-login').value.trim()
+      const password = document.getElementById('reg-anon-password').value
+      if (!login || !password) throw new Error('Заполните логин и пароль')
+      await API.post('/auth/register/anonymous', { login, password })
+    }
+    window.location.href = params.get('next') || '/lk.html'
+  } catch (err) {
+    showAlert(alertBox, 'error', err.message)
+  } finally {
+    setLoading(btn, false)
+  }
+}
+
+function oauthLogin(provider) {
+  toast('OAuth-авторизация будет добавлена в следующем обновлении', 'info')
+}
+</script>
+</body>
+</html>
