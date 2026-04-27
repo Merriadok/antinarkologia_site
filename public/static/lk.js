@@ -707,67 +707,113 @@ async function renderProfile() {
       </div>
     </div>
 
-    ${user.is_anonymous ? `
-      <div class="card" style="max-width:520px;margin-top:16px;border:2px solid var(--c-warning,#f59e0b)">
-        <div class="card-header" style="background:#fffbeb">
-          <div class="card-title" style="color:#92400e">⚠ Данные для входа — сохраните!</div>
-        </div>
-        <div class="card-body">
-          <p style="font-size:14px;color:var(--c-muted);line-height:1.6;margin-bottom:14px">
-            У вас анонимный аккаунт. Если забудете логин или пароль — восстановить доступ будет <strong>невозможно</strong>.
-            Сфотографируйте или запишите эти данные.
-          </p>
-          <div style="padding:14px 16px;background:#f8f7f4;border-radius:8px;border:1px solid var(--c-border)">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-              <span style="font-size:13px;color:var(--c-muted);width:70px">Логин:</span>
-              <code style="font-family:monospace;font-size:15px;font-weight:700;letter-spacing:.03em;flex:1">${user.login}</code>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <span style="font-size:13px;color:var(--c-muted);width:70px">Пароль:</span>
-              <div style="display:flex;align-items:center;gap:8px;flex:1">
-                <code id="anon-pwd-display" style="font-family:monospace;font-size:15px;font-weight:700;letter-spacing:.1em">••••••••</code>
-                <button class="btn btn-ghost btn-sm" id="btn-show-pwd"
-                  onclick="toggleAnonPassword()"
-                  style="font-size:12px;padding:2px 8px;border:1px solid var(--c-border);border-radius:4px">
-                  👁 Показать
-                </button>
-              </div>
-            </div>
-          </div>
-          <p style="font-size:12px;color:var(--c-muted);margin-top:10px;text-align:center">
-            📷 Сфотографируйте этот экран или сохраните данные в надёжном месте
-          </p>
-        </div>
-      </div>
-    ` : ''}
+    ${user.is_anonymous ? buildAnonCredentialsCard(user.login) : ''}
   `
 }
 
-// Переключение видимости пароля для анонимного аккаунта
-function toggleAnonPassword() {
-  const display = document.getElementById('anon-pwd-display')
-  const btn     = document.getElementById('btn-show-pwd')
-  const pwd     = sessionStorage.getItem('anon_pwd_hint')
+// Строим карточку «Данные для входа» для анонима
+function buildAnonCredentialsCard(login) {
+  const pwd = sessionStorage.getItem('anon_pwd_hint') || ''
+  // Если пароль есть в sessionStorage — показываем его сразу (скрытым),
+  // если нет — показываем поле для ввода вручную, чтобы пользователь мог пересохранить
+  const hasPwd = pwd.length > 0
 
-  if (!display) return
+  return `
+    <div class="card" style="max-width:520px;margin-top:16px;border:2px solid #f59e0b">
+      <div class="card-header" style="background:#fffbeb">
+        <div class="card-title" style="color:#92400e">⚠ Данные для входа — сохраните!</div>
+      </div>
+      <div class="card-body">
+        <p style="font-size:14px;color:var(--c-muted);line-height:1.6;margin-bottom:14px">
+          Анонимный аккаунт — если забудете логин или пароль,
+          восстановить доступ будет <strong>невозможно</strong>.
+        </p>
 
-  if (display.dataset.visible === '1') {
-    display.textContent = '••••••••'
-    display.dataset.visible = '0'
-    btn.innerHTML = '👁 Показать'
+        <div style="padding:14px 16px;background:#f8f7f4;border-radius:8px;border:1px solid var(--c-border)">
+
+          <!-- Логин -->
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <span style="font-size:13px;color:var(--c-muted);min-width:60px">Логин:</span>
+            <code style="font-family:monospace;font-size:15px;font-weight:700;
+                         background:#fff;padding:4px 10px;border-radius:5px;
+                         border:1px solid var(--c-border);flex:1;user-select:all">${login}</code>
+          </div>
+
+          <!-- Пароль -->
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:13px;color:var(--c-muted);min-width:60px">Пароль:</span>
+            ${hasPwd ? `
+              <div style="display:flex;align-items:center;gap:8px;flex:1">
+                <code id="anon-pwd-val"
+                  style="font-family:monospace;font-size:15px;font-weight:700;
+                         background:#fff;padding:4px 10px;border-radius:5px;
+                         border:1px solid var(--c-border);flex:1;
+                         letter-spacing:.12em;user-select:all"
+                  data-pwd="${pwd.replace(/"/g,'&quot;')}"
+                  data-visible="0">••••••••</code>
+                <button onclick="toggleAnonPwd()"
+                  id="btn-toggle-pwd"
+                  style="background:none;border:1px solid var(--c-border);border-radius:5px;
+                         padding:4px 10px;cursor:pointer;font-size:13px;white-space:nowrap;
+                         color:var(--c-primary)">
+                  👁 Показать
+                </button>
+              </div>
+            ` : `
+              <div style="flex:1">
+                <input type="password" id="anon-pwd-input" class="form-input"
+                  placeholder="Введите ваш пароль, чтобы сохранить его здесь"
+                  style="font-family:monospace;letter-spacing:.08em">
+                <div style="display:flex;gap:6px;margin-top:6px">
+                  <button onclick="rememberAnonPwd()" class="btn btn-outline btn-sm">
+                    💾 Сохранить для показа
+                  </button>
+                  <button onclick="document.getElementById('anon-pwd-input').type =
+                    document.getElementById('anon-pwd-input').type === 'password' ? 'text' : 'password'"
+                    class="btn btn-ghost btn-sm">👁</button>
+                </div>
+                <div class="form-hint" style="margin-top:6px">
+                  Пароль хранится только в вашем браузере и нигде не передаётся
+                </div>
+              </div>
+            `}
+          </div>
+        </div>
+
+        <p style="font-size:12px;color:var(--c-muted);margin-top:12px;text-align:center">
+          📷 Сфотографируйте этот экран или запишите данные в надёжном месте
+        </p>
+      </div>
+    </div>
+  `
+}
+
+// Показать / скрыть пароль (если он есть в sessionStorage)
+function toggleAnonPwd() {
+  const code = document.getElementById('anon-pwd-val')
+  const btn  = document.getElementById('btn-toggle-pwd')
+  if (!code) return
+  if (code.dataset.visible === '1') {
+    code.textContent     = '••••••••'
+    code.dataset.visible = '0'
+    btn.textContent      = '👁 Показать'
   } else {
-    if (!pwd) {
-      display.textContent = '(введите пароль заново)'
-      display.style.fontSize = '12px'
-      display.style.color = 'var(--c-muted)'
-    } else {
-      display.textContent = pwd
-    }
-    display.dataset.visible = '1'
-    btn.innerHTML = '🙈 Скрыть'
+    code.textContent     = code.dataset.pwd
+    code.dataset.visible = '1'
+    btn.textContent      = '🙈 Скрыть'
   }
 }
-window.toggleAnonPassword = toggleAnonPassword
+window.toggleAnonPwd = toggleAnonPwd
+
+// Запомнить пароль, введённый вручную
+function rememberAnonPwd() {
+  const input = document.getElementById('anon-pwd-input')
+  if (!input || !input.value.trim()) return
+  sessionStorage.setItem('anon_pwd_hint', input.value.trim())
+  // Перерисовываем профиль — теперь появится кнопка «Показать»
+  renderProfile()
+}
+window.rememberAnonPwd = rememberAnonPwd
 
 async function saveProfile() {
   const alertBox = document.getElementById('profile-alert')
