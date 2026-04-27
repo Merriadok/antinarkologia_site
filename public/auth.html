@@ -113,7 +113,14 @@
 Auth.me().then(user => {
   if (!user) return
   const params = new URLSearchParams(location.search)
-  window.location.href = params.get('role') === 'consultant' ? '/consultant.html' : '/lk.html'
+  // Редиректим только если роль совпадает с запрошенной страницей,
+  // иначе просто остаёмся на странице входа (чтобы не было петли)
+  if (params.get('role') === 'consultant') {
+    if (user.role === 'consultant') window.location.href = '/consultant.html'
+    // если залогинен как клиент — не редиректим, даём войти заново как консультант
+  } else {
+    window.location.href = params.get('next') || '/lk.html'
+  }
 })
 
 // Проверяем, нужна ли консультантская страница
@@ -195,7 +202,9 @@ document.getElementById('form-register').onsubmit = async (e) => {
       // Сохраняем пароль в sessionStorage — только для показа на странице профиля
       sessionStorage.setItem('anon_pwd_hint', password)
     }
-    window.location.href = params.get('next') || '/lk.html'
+    // При регистрации на странице консультанта — редиректим на /consultant.html
+    const isConsultantPage = params.get('role') === 'consultant'
+    window.location.href = isConsultantPage ? '/consultant.html' : (params.get('next') || '/lk.html')
   } catch (err) {
     showAlert(alertBox, 'error', err.message)
   } finally {

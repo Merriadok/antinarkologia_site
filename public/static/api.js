@@ -47,7 +47,19 @@ const Auth = {
 
   async requireConsultant() {
     const user = await this.me()
-    if (!user || user.role !== 'consultant') {
+    if (!user) {
+      // Не залогинен вообще — идём на страницу входа
+      window.location.href = '/auth.html?role=consultant'
+      return null
+    }
+    if (user.role !== 'consultant') {
+      // Залогинен как клиент — тихо выходим и идём на вход консультанта.
+      // Простой редирект без logout вызовет цикл:
+      //   auth.html видит активную сессию → редиректит на consultant.html →
+      //   там снова проверяем роль → снова на auth.html → и так по кругу.
+      // Решение: сначала logout (сносим куки), потом редирект — цикл невозможен.
+      try { await API.post('/auth/logout') } catch {}
+      this._user = null
       window.location.href = '/auth.html?role=consultant'
       return null
     }
