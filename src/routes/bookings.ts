@@ -200,7 +200,7 @@ bookings.get('/my', requireAuth, async (c) => {
         t.name as tariff_name, t.price_rub,
         s.starts_at as slot_starts_at, s.ends_at as slot_ends_at,
         con.short_name as consultant_name, con.photo_url as consultant_photo,
-        con.telegram_username as consultant_telegram,
+        con.telegram_chat_id as consultant_telegram,
         p.yukassa_status, p.confirmation_url, p.paid_at
       FROM bookings b
       LEFT JOIN tariffs t ON t.id = b.tariff_id
@@ -230,7 +230,7 @@ bookings.get('/:id', requireAuth, async (c) => {
         t.name as tariff_name, t.price_rub,
         s.starts_at as slot_starts_at,
         con.short_name as consultant_name, con.email as consultant_email,
-        con.telegram_username as consultant_telegram,
+        con.telegram_chat_id as consultant_telegram,
         con.supports_telemost, con.supports_telegram, con.supports_phone,
         p.yukassa_status, p.confirmation_url, p.paid_at,
         u.display_name as client_name, u.email as client_email

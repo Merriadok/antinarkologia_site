@@ -111,6 +111,22 @@ consultant.post('/support-offer', requireConsultant, async (c) => {
   return c.json({ ok: true, contractId: result.meta.last_row_id })
 })
 
+// GET /api/consultant/support-contracts — все контракты сопровождения
+consultant.get('/support-contracts', requireConsultant, async (c) => {
+  const result = await c.env.DB
+    .prepare(`
+      SELECT sc.*,
+             t.name as tariff_name, t.price_rub as tariff_price,
+             u.display_name as client_name, u.email as client_email
+      FROM support_contracts sc
+      JOIN tariffs t ON t.id = sc.tariff_id
+      LEFT JOIN users u ON u.id = sc.user_id
+      ORDER BY sc.created_at DESC
+    `)
+    .all()
+  return c.json({ contracts: result.results })
+})
+
 // POST /api/consultant/setup — первичная настройка аккаунта консультанта
 // Вызывается один раз при инициализации
 consultant.post('/setup', async (c) => {

@@ -8,33 +8,34 @@ import type { Bindings, Variables } from '../types'
 
 const slots = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
-// GET /api/slots?consultant_id=1&from=2025-05-01&to=2025-05-31
+// GET /api/slots?consultant_id=1&from=2025-05-01&to=2025-05-31[&all=1]
 // Публичный: возвращает доступные слоты
+// С параметром all=1 возвращает ВСЕ слоты (только для консультанта)
 slots.get('/', async (c) => {
   const consultantId = c.req.query('consultant_id') || '1'
   const from = c.req.query('from') || new Date().toISOString().split('T')[0]
-  const to = c.req.query('to') || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const to   = c.req.query('to')   || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const showAll = c.req.query('all') === '1'
 
   const result = await c.env.DB
     .prepare(`
       SELECT s.id, s.starts_at, s.ends_at, s.is_available,
-             -- слот занят если есть бронирование со статусом paid/in_progress
              CASE WHEN b.id IS NOT NULL THEN 1 ELSE 0 END as is_booked
       FROM slots s
       LEFT JOIN bookings b ON b.slot_id = s.id AND b.status IN ('paid', 'in_progress')
       WHERE s.consultant_id = ?
         AND s.starts_at >= ?
         AND s.starts_at <= ?
-        AND s.is_available = 1
       ORDER BY s.starts_at ASC
     `)
     .bind(consultantId, from + 'T00:00:00Z', to + 'T23:59:59Z')
     .all()
 
-  // Возвращаем только незанятые
-  const available = result.results.filter((s: any) => !s.is_booked)
+  const slots = showAll
+    ? result.results
+    : result.results.filter((s: any) => s.is_available && !s.is_booked)
 
-  return c.json({ slots: available })
+  return c.json({ slots })
 })
 
 // POST /api/slots — создать слот (только консультант)

@@ -157,11 +157,14 @@ document.getElementById('form-login').onsubmit = async (e) => {
   setLoading(btn, true, 'Входим...')
   try {
     const isEmail = identity.includes('@')
-    const body = isEmail ? { email: identity, password } : { login: identity, password }
     // Консультант входит через отдельный endpoint
     const isConsultant = params.get('role') === 'consultant'
     const endpoint = isConsultant ? '/auth/login/consultant' : '/auth/login'
     await API.post(endpoint, isEmail ? { email: identity, password } : { login: identity, password })
+    // Если входим по логину (анонимный режим) — сохраняем подсказку пароля
+    if (!isEmail && !isConsultant) {
+      sessionStorage.setItem('anon_pwd_hint', password)
+    }
     window.location.href = isConsultant ? '/consultant.html' : (params.get('next') || '/lk.html')
   } catch (err) {
     showAlert(alertBox, 'error', err.message)
@@ -189,6 +192,8 @@ document.getElementById('form-register').onsubmit = async (e) => {
       const password = document.getElementById('reg-anon-password').value
       if (!login || !password) throw new Error('Заполните логин и пароль')
       await API.post('/auth/register/anonymous', { login, password })
+      // Сохраняем пароль в sessionStorage — только для показа на странице профиля
+      sessionStorage.setItem('anon_pwd_hint', password)
     }
     window.location.href = params.get('next') || '/lk.html'
   } catch (err) {

@@ -674,7 +674,7 @@ async function renderProfile() {
           </div>
         ` : `
           <div class="alert alert-info" style="margin-bottom:16px">
-            Вы используете анонимный аккаунт. Логин: <strong>${user.login}</strong>
+            Вы используете анонимный аккаунт
           </div>
         `}
 
@@ -708,24 +708,66 @@ async function renderProfile() {
     </div>
 
     ${user.is_anonymous ? `
-      <div class="card" style="max-width:520px;margin-top:16px">
-        <div class="card-header"><div class="card-title">⚠ Важно для анонимного аккаунта</div></div>
+      <div class="card" style="max-width:520px;margin-top:16px;border:2px solid var(--c-warning,#f59e0b)">
+        <div class="card-header" style="background:#fffbeb">
+          <div class="card-title" style="color:#92400e">⚠ Данные для входа — сохраните!</div>
+        </div>
         <div class="card-body">
-          <p style="font-size:14px;color:var(--c-muted);line-height:1.6">
-            У вас анонимный аккаунт — мы не знаем ваш email или телефон.
-            Если вы забудете логин или пароль, восстановить доступ будет <strong>невозможно</strong>.
+          <p style="font-size:14px;color:var(--c-muted);line-height:1.6;margin-bottom:14px">
+            У вас анонимный аккаунт. Если забудете логин или пароль — восстановить доступ будет <strong>невозможно</strong>.
+            Сфотографируйте или запишите эти данные.
           </p>
-          <div style="margin-top:14px;padding:14px;background:var(--c-bg);border-radius:8px;font-family:monospace;font-size:14px">
-            Логин: <strong>${user.login}</strong>
+          <div style="padding:14px 16px;background:#f8f7f4;border-radius:8px;border:1px solid var(--c-border)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <span style="font-size:13px;color:var(--c-muted);width:70px">Логин:</span>
+              <code style="font-family:monospace;font-size:15px;font-weight:700;letter-spacing:.03em;flex:1">${user.login}</code>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:13px;color:var(--c-muted);width:70px">Пароль:</span>
+              <div style="display:flex;align-items:center;gap:8px;flex:1">
+                <code id="anon-pwd-display" style="font-family:monospace;font-size:15px;font-weight:700;letter-spacing:.1em">••••••••</code>
+                <button class="btn btn-ghost btn-sm" id="btn-show-pwd"
+                  onclick="toggleAnonPassword()"
+                  style="font-size:12px;padding:2px 8px;border:1px solid var(--c-border);border-radius:4px">
+                  👁 Показать
+                </button>
+              </div>
+            </div>
           </div>
-          <p style="font-size:12px;color:var(--c-muted);margin-top:8px">
-            Сфотографируйте этот экран или сохраните логин в надёжном месте
+          <p style="font-size:12px;color:var(--c-muted);margin-top:10px;text-align:center">
+            📷 Сфотографируйте этот экран или сохраните данные в надёжном месте
           </p>
         </div>
       </div>
     ` : ''}
   `
 }
+
+// Переключение видимости пароля для анонимного аккаунта
+function toggleAnonPassword() {
+  const display = document.getElementById('anon-pwd-display')
+  const btn     = document.getElementById('btn-show-pwd')
+  const pwd     = sessionStorage.getItem('anon_pwd_hint')
+
+  if (!display) return
+
+  if (display.dataset.visible === '1') {
+    display.textContent = '••••••••'
+    display.dataset.visible = '0'
+    btn.innerHTML = '👁 Показать'
+  } else {
+    if (!pwd) {
+      display.textContent = '(введите пароль заново)'
+      display.style.fontSize = '12px'
+      display.style.color = 'var(--c-muted)'
+    } else {
+      display.textContent = pwd
+    }
+    display.dataset.visible = '1'
+    btn.innerHTML = '🙈 Скрыть'
+  }
+}
+window.toggleAnonPassword = toggleAnonPassword
 
 async function saveProfile() {
   const alertBox = document.getElementById('profile-alert')
