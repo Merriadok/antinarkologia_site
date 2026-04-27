@@ -125,8 +125,29 @@ Auth.me().then(user => {
 
 // Проверяем, нужна ли консультантская страница
 const params = new URLSearchParams(location.search)
-if (params.get('role') === 'consultant') {
+const isConsultantMode = params.get('role') === 'consultant'
+
+if (isConsultantMode) {
   document.getElementById('auth-subtitle').textContent = 'Панель консультанта'
+
+  // Консультант не регистрируется через обычную форму —
+  // его аккаунт создаётся администратором через /api/consultant/setup.
+  // Скрываем вкладку «Зарегистрироваться» и показываем пояснение.
+  const registerTab = document.querySelector('[data-mode="register"]')
+  if (registerTab) registerTab.style.display = 'none'
+
+  // Меняем плейсхолдер поля входа — консультант входит только по email
+  const loginIdentity = document.getElementById('login-identity')
+  if (loginIdentity) {
+    loginIdentity.placeholder = 'email@example.com'
+    loginIdentity.type = 'email'
+  }
+
+  // Добавляем пояснение под формой входа
+  const hint = document.createElement('p')
+  hint.style.cssText = 'text-align:center;font-size:12px;color:var(--c-muted);margin-top:12px'
+  hint.textContent = 'Аккаунт консультанта создаётся администратором'
+  document.getElementById('form-login').appendChild(hint)
 }
 
 // ---- Переключение режимов ----
@@ -164,15 +185,13 @@ document.getElementById('form-login').onsubmit = async (e) => {
   setLoading(btn, true, 'Входим...')
   try {
     const isEmail = identity.includes('@')
-    // Консультант входит через отдельный endpoint
-    const isConsultant = params.get('role') === 'consultant'
-    const endpoint = isConsultant ? '/auth/login/consultant' : '/auth/login'
+    const endpoint = isConsultantMode ? '/auth/login/consultant' : '/auth/login'
     await API.post(endpoint, isEmail ? { email: identity, password } : { login: identity, password })
-    // Если входим по логину (анонимный режим) — сохраняем подсказку пароля
-    if (!isEmail && !isConsultant) {
+    // Если входим по логину (анонимный режим клиента) — сохраняем подсказку пароля
+    if (!isEmail && !isConsultantMode) {
       sessionStorage.setItem('anon_pwd_hint', password)
     }
-    window.location.href = isConsultant ? '/consultant.html' : (params.get('next') || '/lk.html')
+    window.location.href = isConsultantMode ? '/consultant.html' : (params.get('next') || '/lk.html')
   } catch (err) {
     showAlert(alertBox, 'error', err.message)
   } finally {
@@ -202,9 +221,7 @@ document.getElementById('form-register').onsubmit = async (e) => {
       // Сохраняем пароль в sessionStorage — только для показа на странице профиля
       sessionStorage.setItem('anon_pwd_hint', password)
     }
-    // При регистрации на странице консультанта — редиректим на /consultant.html
-    const isConsultantPage = params.get('role') === 'consultant'
-    window.location.href = isConsultantPage ? '/consultant.html' : (params.get('next') || '/lk.html')
+    window.location.href = params.get('next') || '/lk.html'
   } catch (err) {
     showAlert(alertBox, 'error', err.message)
   } finally {
