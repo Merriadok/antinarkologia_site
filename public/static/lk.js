@@ -348,8 +348,9 @@ async function renderStepSlot(cont) {
   // Загружаем слоты на ближайшие 30 дней
   const from = new Date()
   const to   = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-  const toStr = to.toISOString().split('T')[0]
-  const fromStr = from.toISOString().split('T')[0]
+  // Даты для API передаём в МСК (UTC+3), чтобы не получить соседний день
+  const toStr   = mskDateStr(to)
+  const fromStr = mskDateStr(from)
 
   let slots = []
   try {
@@ -403,7 +404,7 @@ async function renderStepSlot(cont) {
               return `
                 <button class="day-btn ${d === selectedDay ? 'active' : ''}"
                         onclick="selectDay('${d}')">
-                  <span class="day-num">${date.getDate()}</span>
+                  <span class="day-num">${date.toLocaleDateString('ru-RU',{day:'numeric',timeZone:'Europe/Moscow'})}</span>
                   <span class="day-name">${date.toLocaleDateString('ru-RU',{weekday:'short',timeZone:'Europe/Moscow'})}</span>
                 </button>
               `

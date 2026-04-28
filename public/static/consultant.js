@@ -430,7 +430,7 @@ async function renderSlots() {
           <div class="form-group" style="margin:0">
             <label class="form-label">День</label>
             <input class="form-input" type="date" id="slot-date"
-              min="${new Date().toISOString().split('T')[0]}">
+              min="${mskToday()}">
           </div>
           <div class="form-group" style="margin:0">
             <label class="form-label">Продолжительность</label>
@@ -849,9 +849,9 @@ async function renderProfile() {
     </div>
 
     <div class="card" style="max-width:560px">
-      <div class="card-header"><div class="card-title">Форматы встреч</div></div>
+      <div class="card-header"><div class="card-title">Форматы встреч и контакты</div></div>
       <div class="card-body">
-        <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
           ${[
             { key: 'supports_telemost', label: '📹 TeleМост (видеозвонок)', val: p.supports_telemost },
             { key: 'supports_telegram', label: '💬 Telegram / Макс',       val: p.supports_telegram },
@@ -863,7 +863,32 @@ async function renderProfile() {
             </label>
           `).join('')}
         </div>
-        <button class="btn btn-outline" style="margin-top:16px" onclick="saveFormats()">Сохранить форматы</button>
+
+        <div style="border-top:1px solid var(--c-border);padding-top:16px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--c-muted);margin-bottom:12px">
+            Ваши контакты для клиентов
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">📞 Телефон</label>
+            <input class="form-input" id="p-phone" value="${p.phone || ''}" placeholder="+7 (999) 123-45-67">
+            <div class="form-hint">Показывается клиенту при выборе формата «Телефон»</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">💬 Telegram-ссылка</label>
+            <input class="form-input" id="p-telegram-url" value="${p.telegram_url || ''}" placeholder="https://t.me/your_username">
+            <div class="form-hint">Ссылка для перехода в Telegram</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">💙 Макс-ссылка</label>
+            <input class="form-input" id="p-max-url" value="${p.max_url || ''}" placeholder="https://max.ru/your_username">
+            <div class="form-hint">Ссылка на ваш профиль в Макс (ВКонтакте)</div>
+          </div>
+        </div>
+
+        <button class="btn btn-outline" onclick="saveFormats()">Сохранить форматы и контакты</button>
       </div>
     </div>
   `
@@ -899,9 +924,25 @@ window.saveFormats = async () => {
       supports_telemost: document.getElementById('supports_telemost')?.checked,
       supports_telegram: document.getElementById('supports_telegram')?.checked,
       supports_phone:    document.getElementById('supports_phone')?.checked,
+      phone:        document.getElementById('p-phone')?.value.trim()       || undefined,
+      telegram_url: document.getElementById('p-telegram-url')?.value.trim() || undefined,
+      max_url:      document.getElementById('p-max-url')?.value.trim()       || undefined,
     })
-    toast('Форматы обновлены', 'success')
+    toast('Форматы и контакты сохранены', 'success')
   } catch (err) { toast(err.message, 'error') }
+}
+
+// ============================================================
+// 🕒 Утилита: текущая дата в МСК (для min в date-пикерах и т.п.)
+// ============================================================
+function mskToday() {
+  // Формируем YYYY-MM-DD в московском времени без привязки к локали браузера
+  const now = new Date()
+  const msk = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Moscow' }))
+  const y = msk.getFullYear()
+  const m = String(msk.getMonth() + 1).padStart(2, '0')
+  const d = String(msk.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 // ---- Старт ----

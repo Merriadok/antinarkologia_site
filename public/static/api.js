@@ -207,7 +207,18 @@ const Router = {
   }
 }
 
+// ---------- Утилита: дата в МСК для API-запросов ----------
+// Возвращает YYYY-MM-DD в московском времени (не зависит от локали браузера)
+function mskDateStr(date) {
+  const d = new Date(new Date(date).toLocaleString('en-US', { timeZone: 'Europe/Moscow' }))
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
+
 // ---------- Экспорт в window ----------
+window.mskDateStr = mskDateStr
 window.API    = API
 window.Auth   = Auth
 window.Fmt    = Fmt

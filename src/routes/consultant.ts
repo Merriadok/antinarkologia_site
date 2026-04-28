@@ -20,6 +20,7 @@ consultant.get('/profile', requireConsultant, async (c) => {
 // PATCH /api/consultant/profile — обновить профиль
 consultant.patch('/profile', requireConsultant, async (c) => {
   const { bio_short, bio_full, title, telegram_chat_id, email,
+          phone, telegram_url, max_url,
           supports_telemost, supports_telegram, supports_phone } = await c.req.json()
 
   const updates: string[] = ["updated_at = datetime('now')"]
@@ -33,6 +34,9 @@ consultant.patch('/profile', requireConsultant, async (c) => {
   if (supports_telemost !== undefined){ updates.push('supports_telemost = ?'); values.push(supports_telemost ? 1 : 0) }
   if (supports_telegram !== undefined){ updates.push('supports_telegram = ?'); values.push(supports_telegram ? 1 : 0) }
   if (supports_phone !== undefined)   { updates.push('supports_phone = ?'); values.push(supports_phone ? 1 : 0) }
+  if (phone !== undefined)             { updates.push('phone = ?'); values.push(phone) }
+  if (telegram_url !== undefined)      { updates.push('telegram_url = ?'); values.push(telegram_url) }
+  if (max_url !== undefined)           { updates.push('max_url = ?'); values.push(max_url) }
 
   values.push(1) // id консультанта
 
