@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>АНТИНаркология — советы без бюрократии</title>
+<meta name="description" content="Профессиональный совет по вопросам наркологии, психиатрии и зависимости — анонимно, без постановки на учёт, без лишних формальностей.">
+<link rel="stylesheet" href="/static/app.css">
+<style>
+
+/* ===== Лендинг — собственные стили ===== */
+
+/* Сброс для лендинга */
+.land { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+
+/* ---- Шапка ---- */
+.land-header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(255,255,255,.96);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--c-border);
+}
+.land-header-inner {
+  max-width: 1100px; margin: 0 auto;
+  padding: 0 24px;
+  height: 60px;
+  display: flex; align-items: center; gap: 16px;
+}
+.land-logo {
+  font-size: 17px; font-weight: 800;
+  color: var(--c-primary); letter-spacing: -.4px;
+  text-decoration: none;
+}
+.land-logo span { color: var(--c-accent); }
+.land-nav {
+  display: flex; gap: 4px; margin-left: auto; align-items: center;
+}
+.land-nav a {
+  padding: 7px 14px; border-radius: 7px;
+  font-size: 14px; font-weight: 500;
+  color: var(--c-muted); text-decoration: none;
+  transition: color .15s, background .15s;
+}
+.land-nav a:hover { color: var(--c-text); background: var(--c-bg); }
+.land-nav .btn-cta {
+  background: var(--c-accent); color: #fff;
+  padding: 8px 18px; border-radius: 7px;
+  font-size: 14px; font-weight: 600;
+  text-decoration: none;
+  transition: background .15s;
+}
+.land-nav .btn-cta:hover { background: var(--c-accent-h); }
+
+/* ---- Hero ---- */
+.land-hero {
+  background: linear-gradient(135deg, #1e3a52 0%, #2a5e8a 55%, #1a4a6e 100%);
+  color: #fff;
+  padding: 80px 24px 90px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.land-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 600px 400px at 20% 50%, rgba(224,123,58,.15) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 300px at 80% 30%, rgba(255,255,255,.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+.land-hero-inner {
+  max-width: 760px; margin: 0 auto; position: relative;
+}
+.land-hero-label {
+  display: inline-block;
+  background: rgba(224,123,58,.25); border: 1px solid rgba(224,123,58,.4);
+  color: #f5c49a; border-radius: 20px;
+  padding: 5px 14px; font-size: 13px; font-weight: 500;
+  margin-bottom: 24px; letter-spacing: .02em;
+}
+.land-hero h1 {
+  font-size: clamp(32px, 6vw, 54px);
+  font-weight: 800; line-height: 1.15;
+  margin-bottom: 20px; letter-spacing: -.02em;
+}
+.land-hero h1 em {
+  font-style: normal;
+  color: #f5a462;
+}
+.land-hero-sub {
+  font-size: clamp(15px, 2.5vw, 18px);
+  line-height: 1.65;
+  color: rgba(255,255,255,.82);
+  margin-bottom: 40px;
+  max-width: 620px; margin-left: auto; margin-right: auto;
+}
+.land-hero-actions {
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+.land-hero-actions .btn-main {
+  background: var(--c-accent); color: #fff;
+  padding: 14px 32px; border-radius: 9px;
+  font-size: 16px; font-weight: 700;
+  text-decoration: none; border: none; cursor: pointer;
+  transition: background .15s, transform .1s;
+  display: inline-block;
+}
+.land-hero-actions .btn-main:hover { background: var(--c-accent-h); transform: translateY(-1px); }
+.land-hero-actions .btn-sec {
+  background: rgba(255,255,255,.12); color: #fff;
+  padding: 14px 28px; border-radius: 9px;
+  font-size: 16px; font-weight: 500;
+  text-decoration: none; border: 1px solid rgba(255,255,255,.25);
+  transition: background .15s;
+  display: inline-block;
+}
+.land-hero-actions .btn-sec:hover { background: rgba(255,255,255,.2); }
+
+.land-hero-badges {
+  display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;
+}
+.hero-badge {
+  display: flex; align-items: center; gap: 7px;
+  color: rgba(255,255,255,.7); font-size: 13px;
+}
+.hero-badge-icon {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(255,255,255,.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+
+/* ---- Секции ---- */
+.land-section {
+  padding: 80px 24px;
+}
+.land-section-inner {
+  max-width: 1100px; margin: 0 auto;
+}
+.land-section.alt { background: var(--c-bg); }
+
+.section-label {
+  font-size: 12px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--c-accent);
+  margin-bottom: 10px;
+}
+.section-title {
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 800; line-height: 1.2;
+  letter-spacing: -.02em; margin-bottom: 14px;
+  color: var(--c-text);
+}
+.section-sub {
+  font-size: 16px; color: var(--c-muted); line-height: 1.65;
+  max-width: 580px; margin-bottom: 48px;
+}
+
+/* ---- Почему мы — карточки ---- */
+.why-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+.why-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 26px 24px;
+  box-shadow: var(--shadow);
+  transition: box-shadow .2s, transform .2s;
+}
+.why-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.why-icon {
+  font-size: 32px; margin-bottom: 14px; display: block;
+}
+.why-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.why-card p { font-size: 14px; color: var(--c-muted); line-height: 1.6; }
+
+/* ---- Как это работает ---- */
+.steps-list {
+  display: flex; flex-direction: column; gap: 0;
+  max-width: 680px;
+}
+.step-item {
+  display: flex; gap: 20px; padding: 24px 0;
+  border-bottom: 1px solid var(--c-border);
+}
+.step-item:last-child { border-bottom: none; }
+.step-num {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--c-primary); color: #fff;
+  font-weight: 800; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px;
+}
+.step-body h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.step-body p { font-size: 14px; color: var(--c-muted); line-height: 1.6; }
+
+/* ---- Тарифы ---- */
+.tariff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+.tariff-card {
+  background: var(--c-surface);
+  border: 2px solid var(--c-border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  display: flex; flex-direction: column;
+  transition: border-color .2s, box-shadow .2s;
+  position: relative;
+}
+.tariff-card:hover { border-color: var(--c-primary); box-shadow: var(--shadow-lg); }
+.tariff-card.featured {
+  border-color: var(--c-accent);
+  box-shadow: 0 4px 32px rgba(224,123,58,.15);
+}
+.tariff-badge-featured {
+  position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+  background: var(--c-accent); color: #fff;
+  font-size: 11px; font-weight: 700; letter-spacing: .05em;
+  padding: 3px 12px; border-radius: 20px;
+  white-space: nowrap;
+}
+.tariff-icon { font-size: 28px; margin-bottom: 12px; }
+.tariff-name { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.tariff-desc { font-size: 13px; color: var(--c-muted); line-height: 1.55; flex: 1; margin-bottom: 20px; }
+.tariff-price {
+  font-size: 26px; font-weight: 800; color: var(--c-text);
+  margin-bottom: 4px;
+}
+.tariff-price span { font-size: 15px; font-weight: 400; color: var(--c-muted); }
+.tariff-action {
+  display: block; text-align: center; text-decoration: none;
+  margin-top: 16px; padding: 10px 16px;
+  border-radius: 8px; font-size: 14px; font-weight: 600;
+  background: var(--c-primary); color: #fff;
+  transition: background .15s;
+}
+.tariff-action:hover { background: var(--c-primary-h); text-decoration: none; }
+.tariff-card.featured .tariff-action { background: var(--c-accent); }
+.tariff-card.featured .tariff-action:hover { background: var(--c-accent-h); }
+
+/* ---- Специалист ---- */
+.expert-card {
+  display: flex; gap: 36px; align-items: flex-start;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 20px;
+  padding: 36px 40px;
+  box-shadow: var(--shadow-lg);
+  max-width: 800px;
+}
+.expert-photo {
+  width: 130px; height: 130px; border-radius: 50%; object-fit: cover;
+  flex-shrink: 0; border: 3px solid var(--c-border);
+  background: #e0ecf7;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 56px;
+}
+.expert-body {}
+.expert-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+.expert-title { font-size: 14px; color: var(--c-accent); font-weight: 600; margin-bottom: 14px; }
+.expert-bio { font-size: 15px; color: var(--c-muted); line-height: 1.65; margin-bottom: 18px; }
+.expert-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.expert-tag {
+  background: #e8f0f7; color: var(--c-primary);
+  border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 500;
+}
+
+/* ---- Миссия-цитата ---- */
+.mission-block {
+  background: linear-gradient(135deg, #1e3a52 0%, #2a5e8a 100%);
+  border-radius: 20px; padding: 52px 52px;
+  color: #fff; position: relative; overflow: hidden;
+  max-width: 900px; margin: 0 auto;
+}
+.mission-block::before {
+  content: '❝';
+  position: absolute; top: 20px; left: 36px;
+  font-size: 120px; opacity: .06; line-height: 1;
+  font-family: Georgia, serif;
+}
+.mission-quote {
+  font-size: clamp(16px, 2.5vw, 20px);
+  line-height: 1.7; font-weight: 400;
+  color: rgba(255,255,255,.9);
+  margin-bottom: 20px;
+  position: relative;
+}
+.mission-quote strong { color: #f5a462; font-weight: 700; }
+.mission-source { font-size: 14px; color: rgba(255,255,255,.5); }
+
+/* ---- FAQ ---- */
+.faq-list { max-width: 680px; display: flex; flex-direction: column; gap: 0; }
+.faq-item {
+  border-bottom: 1px solid var(--c-border);
+}
+.faq-q {
+  width: 100%; text-align: left; background: none; border: none;
+  padding: 18px 0; cursor: pointer;
+  font-size: 15px; font-weight: 600; color: var(--c-text);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  transition: color .15s;
+}
+.faq-q:hover { color: var(--c-primary); }
+.faq-arrow { font-size: 18px; transition: transform .2s; flex-shrink: 0; color: var(--c-muted); }
+.faq-item.open .faq-arrow { transform: rotate(180deg); }
+.faq-a {
+  display: none; padding: 0 0 18px;
+  font-size: 14px; color: var(--c-muted); line-height: 1.7;
+}
+.faq-item.open .faq-a { display: block; }
+.faq-a a { color: var(--c-primary); }
+
+/* ---- CTA-блок ---- */
+.cta-block {
+  text-align: center;
+  background: var(--c-bg);
+  border-top: 1px solid var(--c-border);
+  padding: 80px 24px;
+}
+.cta-block h2 {
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 800; margin-bottom: 14px; letter-spacing: -.02em;
+}
+.cta-block p { font-size: 16px; color: var(--c-muted); margin-bottom: 36px; }
+.cta-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* ---- Подвал ---- */
+.land-footer {
+  background: #1a2d3e; color: rgba(255,255,255,.55);
+  padding: 40px 24px;
+}
+.land-footer-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; gap: 24px; flex-wrap: wrap;
+  justify-content: space-between; align-items: flex-start;
+}
+.footer-logo {
+  font-size: 16px; font-weight: 800;
+  color: rgba(255,255,255,.9);
+}
+.footer-logo span { color: var(--c-accent); }
+.footer-desc { font-size: 12px; margin-top: 6px; max-width: 240px; line-height: 1.55; }
+.footer-links { display: flex; flex-direction: column; gap: 6px; }
+.footer-links a {
+  font-size: 13px; color: rgba(255,255,255,.5);
+  text-decoration: none; transition: color .15s;
+}
+.footer-links a:hover { color: rgba(255,255,255,.9); }
+.footer-copy {
+  width: 100%;
+  border-top: 1px solid rgba(255,255,255,.08);
+  padding-top: 20px; margin-top: 16px;
+  font-size: 12px; color: rgba(255,255,255,.3);
+}
+
+/* ---- Адаптив ---- */
+@media (max-width: 640px) {
+  .land-nav a:not(.btn-cta) { display: none; }
+  .expert-card { flex-direction: column; padding: 28px 24px; }
+  .mission-block { padding: 36px 28px; }
+  .mission-block::before { display: none; }
+  .land-hero { padding: 56px 20px 64px; }
+}
+
+</style>
+</head>
+<body class="land">
+
+<!-- ====== ШАПКА ====== -->
+<header class="land-header">
+  <div class="land-header-inner">
+    <a href="/" class="land-logo">АНТИ<span>Нарко</span>логия</a>
+    <nav class="land-nav">
+      <a href="#how">Как это работает</a>
+      <a href="#prices">Советы и цены</a>
+      <a href="#expert">Специалист</a>
+      <a href="/auth.html" style="color:var(--c-muted)">Войти</a>
+      <a href="/auth.html" class="btn-cta">Получить совет</a>
+    </nav>
+  </div>
+</header>
+
+
+<!-- ====== ГЕРОЙ ====== -->
+<section class="land-hero">
+  <div class="land-hero-inner">
+    <div class="land-hero-label">Независимый информационно-консультационный проект</div>
+    <h1>Профессиональный совет —<br><em>без очередей и стигмы</em></h1>
+    <p class="land-hero-sub">
+      Столкнулись с вопросом зависимости — своей или близкого человека?
+      Мы не ставим на учёт, не требуем документов и не читаем лекций.
+      Просто честный совет от специалиста с 30-летним опытом.
+    </p>
+    <div class="land-hero-actions">
+      <a href="/auth.html" class="btn-main">Записаться на совет</a>
+      <a href="#how" class="btn-sec">Узнать как это работает</a>
+    </div>
+    <div class="land-hero-badges">
+      <div class="hero-badge">
+        <div class="hero-badge-icon">🔒</div>
+        Полная анонимность
+      </div>
+      <div class="hero-badge">
+        <div class="hero-badge-icon">⚡</div>
+        Без бюрократии
+      </div>
+      <div class="hero-badge">
+        <div class="hero-badge-icon">🎓</div>
+        30 лет практики
+      </div>
+      <div class="hero-badge">
+        <div class="hero-badge-icon">💬</div>
+        Онлайн-созвон
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====== ПОЧЕМУ МЫ ====== -->
+<section class="land-section" id="why">
+  <div class="land-section-inner">
+    <div class="section-label">Почему АНТИНаркология</div>
+    <h2 class="section-title">Другой формат помощи</h2>
+    <p class="section-sub">
+      Официальная наркология часто пугает: учёт, бюрократия, стигма.
+      Мы предлагаем другой путь — прямой разговор со специалистом.
+    </p>
+
+    <div class="why-grid">
+      <div class="why-card">
+        <span class="why-icon">🎭</span>
+        <h3>Вы остаётесь анонимом</h3>
+        <p>Никакой почты, телефона или паспорта, если не хотите. Можно зайти просто под логином — и всё.</p>
+      </div>
+      <div class="why-card">
+        <span class="why-icon">🚫</span>
+        <h3>Никаких постановок на учёт</h3>
+        <p>Это не медицинская услуга и не «консультация» с лицензией. Это честный, компетентный совет — куда пойти, что сказать, чего не делать.</p>
+      </div>
+      <div class="why-card">
+        <span class="why-icon">🗺️</span>
+        <h3>Маршрутизация, а не диагноз</h3>
+        <p>Поможем выстроить реалистичный план: к кому обратиться, как не попасть к мошенникам, как выбрать подходящее лечение.</p>
+      </div>
+      <div class="why-card">
+        <span class="why-icon">🤝</span>
+        <h3>Сопровождение на всём пути</h3>
+        <p>Если нужна не разовая беседа, а долгосрочная поддержка — есть формат сопровождения: регулярный контакт со специалистом.</p>
+      </div>
+      <div class="why-card">
+        <span class="why-icon">🔬</span>
+        <h3>Научная база, без мифов</h3>
+        <p>Мы за доказательную наркологию. Никаких «магических» методик, только то, что реально работает.</p>
+      </div>
+      <div class="why-card">
+        <span class="why-icon">🌍</span>
+        <h3>Международный опыт</h3>
+        <p>Специалисты прошли обучение в США, Канаде, Австрии, участвовали в программах ООН по противодействию наркотикам.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====== КАК РАБОТАЕТ ====== -->
+<section class="land-section alt" id="how">
+  <div class="land-section-inner">
+    <div class="section-label">Как это работает</div>
+    <h2 class="section-title">Четыре шага до ответа</h2>
+    <p class="section-sub">
+      Никаких направлений, талончиков и очередей.
+      От регистрации до созвона — меньше часа.
+    </p>
+
+    <div class="steps-list">
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Регистрируетесь — анонимно или по почте</h3>
+          <p>Можно придумать любой логин и пароль — никаких личных данных не нужно. Если хотите получать уведомления — укажите email.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Выбираете удобное время для созвона</h3>
+          <p>Смотрите расписание специалиста, выбираете свободный слот или просите связаться в удобное для вас время.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Оплачиваете — безопасно, через ЮKassa</h3>
+          <p>Картой, СБП или другим удобным способом. Стоимость совета от 1 000 ₽. Сопровождение — отдельный разговор.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>Созваниваетесь и получаете совет</h3>
+          <p>Видеозвонок в Яндекс TeleМост, Telegram или просто по телефону. Главное — вы получите честный ответ, а не отписку.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====== МИССИЯ ====== -->
+<section class="land-section" style="padding-top:0">
+  <div class="land-section-inner">
+    <div class="mission-block">
+      <p class="mission-quote">
+        Главная цель проекта — максимально облегчить доступ к <strong>профессионалам</strong>
+        без квестов, ребусов и загадок, которые приходится преодолевать пациентам и их родственникам.
+        Вы можете связаться с врачом, психологом, юристом напрямую — <strong>анонимно,
+        без посредников и бюрократической волокиты.</strong>
+      </p>
+      <div class="mission-source">— Из миссии проекта АНТИНаркология</div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====== ТАРИФЫ ====== -->
+<section class="land-section alt" id="prices">
+  <div class="land-section-inner">
+    <div class="section-label">Форматы и цены</div>
+    <h2 class="section-title">Выберите, что вам нужно</h2>
+    <p class="section-sub">
+      Разовый совет или долгосрочное сопровождение — решаете вы.
+      Никаких скрытых платежей.
+    </p>
+
+    <div id="tariff-grid" class="tariff-grid">
+      <!-- Загружается через JS -->
+      <div class="tariff-card">
+        <div class="tariff-icon">💬</div>
+        <div class="tariff-name">Совет</div>
+        <div class="tariff-desc">Разовый созвон со специалистом. Разберём вашу ситуацию, дадим чёткий план действий.</div>
+        <div class="tariff-price">1 000 <span>₽</span></div>
+        <a href="/auth.html" class="tariff-action">Записаться</a>
+      </div>
+      <div class="tariff-card featured">
+        <div class="tariff-badge-featured">ПОПУЛЯРНЫЙ</div>
+        <div class="tariff-icon">🤝</div>
+        <div class="tariff-name">Сопровождение — 1 месяц</div>
+        <div class="tariff-desc">Регулярный контакт со специалистом в течение месяца. Помощь на каждом шагу.</div>
+        <div class="tariff-price">от <span style="font-size:26px;font-weight:800;color:var(--c-text)">9 000</span> <span>₽</span></div>
+        <a href="/auth.html" class="tariff-action">Начать</a>
+      </div>
+      <div class="tariff-card">
+        <div class="tariff-icon">🗓️</div>
+        <div class="tariff-name">Сопровождение — 3 месяца</div>
+        <div class="tariff-desc">Три месяца плотного взаимодействия. Оптимальный срок для выстраивания устойчивых изменений.</div>
+        <div class="tariff-price">от <span style="font-size:26px;font-weight:800;color:var(--c-text)">18 000</span> <span>₽</span></div>
+        <a href="/auth.html" class="tariff-action">Начать</a>
+      </div>
+    </div>
+
+    <p style="margin-top:20px;font-size:13px;color:var(--c-muted);text-align:center">
+      Цены на сопровождение обсуждаются индивидуально и могут отличаться.
+      <a href="/auth.html">Запишитесь</a> — и мы всё расскажем.
+    </p>
+  </div>
+</section>
+
+
+<!-- ====== СПЕЦИАЛИСТ ====== -->
+<section class="land-section" id="expert">
+  <div class="land-section-inner">
+    <div class="section-label">Команда</div>
+    <h2 class="section-title">С вами будет работать</h2>
+
+    <div class="expert-card">
+      <div class="expert-photo">🧑‍⚕️</div>
+      <div class="expert-body">
+        <div class="expert-name">Андрей Васильевич Мандыбура</div>
+        <div class="expert-title">Психиатр-нарколог, высшая квалификационная категория</div>
+        <p class="expert-bio">
+          Более 30 лет практики в наркологии. Один из инициаторов внедрения программ «12 шагов» в Крыму.
+          Автор и организатор ряда значимых реабилитационных проектов. Прошёл подготовку в рамках программы
+          TREATNET (UNODC) — комитет ООН по противодействию распространению наркотиков.
+          Работает с ситуациями любой сложности — от первичного обращения до многолетнего сопровождения.
+        </p>
+        <div class="expert-tags">
+          <span class="expert-tag">Психиатрия-наркология</span>
+          <span class="expert-tag">Реабилитация</span>
+          <span class="expert-tag">Программа 12 шагов</span>
+          <span class="expert-tag">TREATNET / UNODC</span>
+          <span class="expert-tag">Семейное консультирование</span>
+          <span class="expert-tag">Маршрутизация</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====== FAQ ====== -->
+<section class="land-section alt" id="faq">
+  <div class="land-section-inner">
+    <div class="section-label">Частые вопросы</div>
+    <h2 class="section-title">Отвечаем честно</h2>
+
+    <div class="faq-list" id="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Это медицинская услуга? Мне нужна лицензия или направление?
+          <span class="faq-arrow">⌄</span>
+        </button>
+        <div class="faq-a">
+          Нет. Мы оказываем <strong>информационно-консультационные услуги</strong> — даём советы, а не ставим диагнозы и не назначаем лечение. Для этого не нужно направление, полис или паспорт. Если ситуация требует медицинского вмешательства — подскажем, куда именно и к кому обратиться.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Меня поставят на учёт?
+          <span class="faq-arrow">⌄</span>
+        </button>
+        <div class="faq-a">
+          Нет и ещё раз нет. Мы не государственная структура и не ведём никаких реестров. Можете работать полностью анонимно — без имени, телефона и почты.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Мои данные куда-то передаются?
+          <span class="faq-arrow">⌄</span>
+        </button>
+        <div class="faq-a">
+          Нет. Всё, что вы пишете на сайте и говорите на созвоне, остаётся между вами и специалистом. Мы не передаём информацию третьим лицам.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Что такое «сопровождение»? Чем оно отличается от разового совета?
+          <span class="faq-arrow">⌄</span>
+        </button>
+        <div class="faq-a">
+          Разовый совет — это один созвон, где мы разбираем ситуацию и выдаём план действий. Сопровождение — это регулярный контакт со специалистом в течение 1, 3 или 5 месяцев: звонки, переписка, корректировка курса по ситуации. Подходит тем, кто хочет поддержку на всём пути, а не только в момент кризиса.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Как проходит созвон? Нужно что-то устанавливать?
+          <span class="faq-arrow">⌄</span>
+        </button>
+        <div class="faq-a">
+          Созвон проходит через Яндекс TeleМост (браузер, ничего устанавливать не нужно), Telegram или по обычному телефону — выбирайте, что удобнее. Ссылку на созвон вы получите после записи.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          А если ситуация не про наркологию? Вы поможете?
+          <span class="faq-arrow">⌄</span>
+        </button>
+        <div class="faq-a">
+          Основная специализация — наркология, психиатрия, зависимости. Но благодаря широкому кругу знакомств наши специалисты помогут с маршрутизацией практически в любой неоднозначной ситуации или привлекут нужного эксперта.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====== CTA ====== -->
+<section class="cta-block" id="cta">
+  <h2>Готовы поговорить?</h2>
+  <p>Регистрация занимает меньше минуты. Анонимность — по желанию.</p>
+  <div class="cta-actions">
+    <a href="/auth.html" class="btn btn-primary btn-lg">Записаться на совет</a>
+    <a href="/auth.html" class="btn btn-outline btn-lg">Войти в кабинет</a>
+  </div>
+</section>
+
+
+<!-- ====== ПОДВАЛ ====== -->
+<footer class="land-footer">
+  <div class="land-footer-inner">
+    <div>
+      <div class="footer-logo">АНТИ<span>Нарко</span>логия</div>
+      <div class="footer-desc">
+        Независимый информационно-консультационный проект.
+        Не является медицинской организацией.
+      </div>
+    </div>
+    <div class="footer-links">
+      <strong style="color:rgba(255,255,255,.7);font-size:13px;margin-bottom:4px">Разделы</strong>
+      <a href="#how">Как это работает</a>
+      <a href="#prices">Советы и цены</a>
+      <a href="#expert">Специалист</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="footer-links">
+      <strong style="color:rgba(255,255,255,.7);font-size:13px;margin-bottom:4px">Аккаунт</strong>
+      <a href="/auth.html">Войти</a>
+      <a href="/auth.html">Зарегистрироваться</a>
+      <a href="/auth.html?role=consultant">Вход для консультанта</a>
+    </div>
+    <div class="footer-links">
+      <strong style="color:rgba(255,255,255,.7);font-size:13px;margin-bottom:4px">Документы</strong>
+      <a href="/offer.html">Договор-оферта</a>
+    </div>
+  </div>
+  <div class="land-footer-inner">
+    <div class="footer-copy">
+      © 2024–2026 АНТИНаркология. Самозанятый Мандыбура Андрей Васильевич.
+      Информационно-консультационные услуги — не медицинская деятельность.
+    </div>
+  </div>
+</footer>
+
+
+<script src="/static/api.js"></script>
+<script>
+// ---- FAQ аккордеон ----
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item')
+  const isOpen = item.classList.contains('open')
+  // Закрываем все
+  document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'))
+  if (!isOpen) item.classList.add('open')
+}
+
+// ---- Плавная прокрутка ----
+document.querySelectorAll('a[href^="#"]').forEach(link => {
+  link.addEventListener('click', e => {
+    const id = link.getAttribute('href').slice(1)
+    const el = document.getElementById(id)
+    if (el) {
+      e.preventDefault()
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  })
+})
+
+// ---- Подгружаем тарифы через API ----
+;(async () => {
+  try {
+    const { tariffs } = await API.get('/tariffs')
+    if (!tariffs || tariffs.length === 0) return
+
+    const icons = { advice: '💬', support: '🤝' }
+    const featured = ['support_1m'] // slug карточки для выделения
+
+    const grid = document.getElementById('tariff-grid')
+    grid.innerHTML = tariffs.map((t, i) => {
+      const isFeat = t.is_support && i === 1
+      return `
+        <div class="tariff-card${isFeat ? ' featured' : ''}">
+          ${isFeat ? '<div class="tariff-badge-featured">ПОПУЛЯРНЫЙ</div>' : ''}
+          <div class="tariff-icon">${t.is_advice ? '💬' : '🤝'}</div>
+          <div class="tariff-name">${t.name}</div>
+          <div class="tariff-desc">${t.description || ''}</div>
+          <div class="tariff-price">${Fmt.money(t.price_rub)}</div>
+          <a href="/auth.html" class="tariff-action">${t.is_advice ? 'Записаться' : 'Начать'}</a>
+        </div>
+      `
+    }).join('')
+  } catch {}
+})()
+</script>
+
+</body>
+</html>

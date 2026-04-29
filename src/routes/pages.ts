@@ -14,14 +14,18 @@ const pages = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
 // Читаем файлы через Vite raw import
 // @ts-ignore
+import indexHtml      from '../../public/index.html?raw'
+// @ts-ignore
 import authHtml       from '../../public/auth.html?raw'
 // @ts-ignore
 import lkHtml         from '../../public/lk.html?raw'
 // @ts-ignore
 import consultantHtml from '../../public/consultant.html?raw'
 
-pages.get('/auth.html',       (c) => c.html(authHtml))
-pages.get('/lk.html',         (c) => c.html(lkHtml))
+pages.get('/',            (c) => c.html(indexHtml))
+pages.get('/index.html',  (c) => c.html(indexHtml))
+pages.get('/auth.html',   (c) => c.html(authHtml))
+pages.get('/lk.html',     (c) => c.html(lkHtml))
 pages.get('/consultant.html', (c) => c.html(consultantHtml))
 
 // Удобные редиректы без .html
