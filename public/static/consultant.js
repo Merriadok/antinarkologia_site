@@ -553,9 +553,11 @@ window.addSlots = async () => {
   let added = 0, errors = 0
   for (const t of times) {
     const [h, m] = t.split(':').map(Number)
-    const starts = new Date(`${dateVal}T${t.padStart(5,'0')}:00`)
-    // Сохраняем как UTC — время вводим как МСК (UTC+3)
-    const startsUTC = new Date(starts.getTime() - 3 * 60 * 60 * 1000)
+    // Строим UTC напрямую: МСК = UTC+3, значит UTC = МСК - 3ч
+    // НЕ используем new Date(строка без Z) — браузер трактует её как локальное время,
+    // что даёт двойное смещение когда браузер сам в МСК
+    const [year, mon, day] = dateVal.split('-').map(Number)
+    const startsUTC = new Date(Date.UTC(year, mon - 1, day, h - 3, m, 0))
     const endsUTC   = new Date(startsUTC.getTime() + duration * 60 * 1000)
 
     try {
