@@ -4,6 +4,21 @@
 
 let currentUser = null
 let currentPage = 'dashboard'
+let consultantProfile = null  // кэш профиля (включает timezone)
+
+// Возвращает timezone из профиля или дефолтный МСК
+function getConsultantTZ() {
+  return (consultantProfile && consultantProfile.timezone) || 'Europe/Moscow'
+}
+
+// Смещение в часах для заданного timezone (приближённо через Intl)
+function tzOffsetHours(tz) {
+  const now = new Date()
+  // Разница между UTC и local в этом TZ
+  const utcStr = now.toLocaleString('en-US', { timeZone: 'UTC' })
+  const tzStr  = now.toLocaleString('en-US', { timeZone: tz })
+  return (new Date(tzStr) - new Date(utcStr)) / 3_600_000
+}
 
 // ---- Инициализация ----
 
@@ -13,6 +28,12 @@ async function init() {
 
   document.getElementById('topbar-name').textContent =
     currentUser.display_name || 'Консультант'
+
+  // Загружаем профиль (в т.ч. timezone) сразу при старте
+  try {
+    const { profile } = await API.get('/consultant/profile')
+    consultantProfile = profile || {}
+  } catch {}
 
   // Навигация
   $$('[data-page]', document.getElementById('sidebar')).forEach(btn => {
@@ -443,7 +464,7 @@ async function renderSlots() {
         </div>
 
         <div class="form-group" style="margin-top:12px">
-          <label class="form-label">Время (МСК) — можно несколько через пробел или запятую</label>
+          <label class="form-label">Время (${getConsultantTZLabel()}) — можно несколько через пробел или запятую</label>
           <input class="form-input" id="slot-times" type="text"
             placeholder="Например: 10:00 12:00 15:00 18:00">
           <div class="form-hint">Все указанные слоты будут добавлены на выбранный день</div>
@@ -488,11 +509,13 @@ async function loadSlotsList() {
     return
   }
 
+  const tz = getConsultantTZ()
+
   // Группируем по дням
   const byDay = {}
   slots.forEach(s => {
     const day = new Date(s.starts_at).toLocaleDateString('ru-RU', {
-      timeZone: 'Europe/Moscow', weekday: 'long', day: 'numeric', month: 'long'
+      timeZone: tz, weekday: 'long', day: 'numeric', month: 'long'
     })
     if (!byDay[day]) byDay[day] = []
     byDay[day].push(s)
@@ -506,7 +529,7 @@ async function loadSlotsList() {
       <div style="display:flex;flex-wrap:wrap;gap:8px">
         ${daySlots.map(s => {
           const time = new Date(s.starts_at).toLocaleTimeString('ru-RU', {
-            hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow'
+            hour: '2-digit', minute: '2-digit', timeZone: tz
           })
           const isBooked = !s.is_available
           return `
@@ -550,14 +573,19 @@ window.addSlots = async () => {
   const btn = document.querySelector('[onclick="addSlots()"]')
   setLoading(btn, true, 'Добавляем...')
 
+  // Смещение timezone консультанта относительно UTC (в часах)
+  const tzOffset = tzOffsetHours(getConsultantTZ())
+
   let added = 0, errors = 0
   for (const t of times) {
     const [h, m] = t.split(':').map(Number)
-    // Строим UTC напрямую: МСК = UTC+3, значит UTC = МСК - 3ч
-    // НЕ используем new Date(строка без Z) — браузер трактует её как локальное время,
-    // что даёт двойное смещение когда браузер сам в МСК
+    // Строим UTC напрямую из даты+времени в timezone консультанта
+    // Формула: UTC = local_time - tzOffset
+    // НЕ используем new Date(строка без Z) — браузер трактует её как локальное время браузера,
+    // что при совпадении TZ браузера и консультанта даёт двойное смещение
     const [year, mon, day] = dateVal.split('-').map(Number)
-    const startsUTC = new Date(Date.UTC(year, mon - 1, day, h - 3, m, 0))
+    const hUTC = h - tzOffset  // может быть дробным для полуцелых зон, но это редкость
+    const startsUTC = new Date(Date.UTC(year, mon - 1, day, Math.floor(hUTC), m - (hUTC % 1 !== 0 ? 30 : 0), 0))
     const endsUTC   = new Date(startsUTC.getTime() + duration * 60 * 1000)
 
     try {
@@ -846,6 +874,28 @@ async function renderProfile() {
           </div>
         </div>
 
+        <div class="form-group">
+          <label class="form-label">🕐 Часовой пояс (для слотов)</label>
+          <select class="form-input" id="p-timezone" style="cursor:pointer">
+            ${[
+              ['Europe/Moscow',      'Москва (UTC+3)'],
+              ['Europe/Kaliningrad', 'Калининград (UTC+2)'],
+              ['Europe/Samara',      'Самара (UTC+4)'],
+              ['Asia/Yekaterinburg','Екатеринбург (UTC+5)'],
+              ['Asia/Omsk',         'Омск (UTC+6)'],
+              ['Asia/Krasnoyarsk',  'Красноярск (UTC+7)'],
+              ['Asia/Irkutsk',      'Иркутск (UTC+8)'],
+              ['Asia/Yakutsk',      'Якутск (UTC+9)'],
+              ['Asia/Vladivostok',  'Владивосток (UTC+10)'],
+              ['Asia/Magadan',      'Магадан (UTC+11)'],
+              ['Asia/Kamchatka',    'Камчатка (UTC+12)'],
+            ].map(([tz, label]) =>
+              `<option value="${tz}" ${(p.timezone || 'Europe/Moscow') === tz ? 'selected' : ''}>${label}</option>`
+            ).join('')}
+          </select>
+          <div class="form-hint">Время слотов вводится и отображается в этом часовом поясе</div>
+        </div>
+
         <button class="btn btn-outline" onclick="saveContacts()">Сохранить контакты</button>
       </div>
     </div>
@@ -912,10 +962,14 @@ window.saveProfile = async () => {
 
 window.saveContacts = async () => {
   try {
+    const tz = document.getElementById('p-timezone')?.value
     await API.patch('/consultant/profile', {
-      email:           document.getElementById('p-email').value.trim()  || undefined,
+      email:            document.getElementById('p-email').value.trim()  || undefined,
       telegram_chat_id: document.getElementById('p-tgchat').value.trim() || undefined,
+      timezone:         tz || undefined,
     })
+    // Обновляем глобальный TZ сразу
+    if (tz) window._consultantTZ = tz
     toast('Контакты сохранены', 'success')
   } catch (err) { toast(err.message, 'error') }
 }
@@ -935,15 +989,36 @@ window.saveFormats = async () => {
 }
 
 // ============================================================
-// 🕒 Утилита: текущая дата в МСК (для min в date-пикерах и т.п.)
+// 🕒 Утилиты: дата/время с учётом timezone консультанта
 // ============================================================
+
+// Читаемое название TZ для UI
+function getConsultantTZLabel() {
+  const tz = getConsultantTZ()
+  const map = {
+    'Europe/Moscow':      'МСК',
+    'Europe/Kaliningrad': 'КЛД',
+    'Europe/Samara':      'СМР',
+    'Asia/Yekaterinburg': 'ЕКБ',
+    'Asia/Omsk':          'ОМС',
+    'Asia/Krasnoyarsk':   'КРС',
+    'Asia/Irkutsk':       'ИРК',
+    'Asia/Yakutsk':       'ЯКТ',
+    'Asia/Vladivostok':   'ВЛД',
+    'Asia/Magadan':       'МГД',
+    'Asia/Kamchatka':     'КМЧ',
+  }
+  return map[tz] || tz
+}
+
+// Текущая дата в timezone консультанта (YYYY-MM-DD)
 function mskToday() {
-  // Формируем YYYY-MM-DD в московском времени без привязки к локали браузера
+  const tz = getConsultantTZ()
   const now = new Date()
-  const msk = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Moscow' }))
-  const y = msk.getFullYear()
-  const m = String(msk.getMonth() + 1).padStart(2, '0')
-  const d = String(msk.getDate()).padStart(2, '0')
+  const local = new Date(now.toLocaleString('en-US', { timeZone: tz }))
+  const y = local.getFullYear()
+  const m = String(local.getMonth() + 1).padStart(2, '0')
+  const d = String(local.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
 }
 

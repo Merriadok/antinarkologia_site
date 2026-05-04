@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>О проекте — АНТИНаркология</title>
+<meta name="description" content="Миссия, подход и принципы проекта АНТИНаркология.">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #1a2e4a; --navy-2: #243b58; --blue: #2a6496; --blue-lt: #3a7bbf;
+  --sky: #d6eaf8; --sky-2: #eaf4fb; --amber: #e8a020;
+  --white: #ffffff; --gray-50: #f8fafc; --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0; --gray-400: #94a3b8; --gray-500: #64748b;
+  --gray-700: #334155; --text: #1e293b; --r: 10px; --r-lg: 16px;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--white); color: var(--text); line-height: 1.65; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+
+.l-header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,.97); backdrop-filter: blur(12px); border-bottom: 1px solid var(--gray-200); }
+.l-header-inner { max-width: 1120px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; gap: 8px; }
+.l-logo { font-size: 17px; font-weight: 800; color: var(--navy); letter-spacing: -.3px; }
+.l-logo span { color: var(--amber); }
+.l-nav { display: flex; gap: 2px; margin-left: auto; align-items: center; }
+.l-nav-link { padding: 7px 14px; border-radius: var(--r); font-size: 14px; font-weight: 500; color: var(--gray-500); transition: color .15s, background .15s; }
+.l-nav-link:hover { color: var(--navy); background: var(--sky-2); }
+.l-nav-btn { display: inline-flex; align-items: center; background: var(--navy); color: #fff; padding: 8px 18px; border-radius: var(--r); font-size: 14px; font-weight: 600; margin-left: 8px; transition: background .15s; }
+.l-nav-btn:hover { background: var(--navy-2); }
+
+.page-hero { background: var(--navy); padding: 64px 24px 56px; text-align: center; }
+.page-hero h1 { font-size: clamp(26px, 4vw, 42px); font-weight: 800; color: #fff; letter-spacing: -.03em; margin-bottom: 14px; }
+.page-hero p { font-size: 16px; color: rgba(255,255,255,.7); max-width: 560px; margin: 0 auto; }
+
+.l-section { padding: 64px 24px; }
+.l-section-alt { background: var(--gray-50); }
+.l-inner { max-width: 860px; margin: 0 auto; }
+.l-inner-wide { max-width: 1120px; margin: 0 auto; }
+
+.section-label { display: inline-block; background: var(--sky); color: var(--blue); border-radius: 6px; padding: 4px 12px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 14px; }
+.section-title { font-size: clamp(20px, 3vw, 30px); font-weight: 800; letter-spacing: -.02em; margin-bottom: 20px; }
+
+.prose p { font-size: 16px; color: var(--gray-700); line-height: 1.75; margin-bottom: 18px; }
+.prose h3 { font-size: 20px; font-weight: 700; margin: 32px 0 14px; }
+.prose ul { margin: 0 0 18px 20px; }
+.prose li { font-size: 15px; color: var(--gray-700); line-height: 1.7; margin-bottom: 8px; }
+
+.highlight-box { background: var(--navy); color: #fff; border-radius: var(--r-lg); padding: 36px 40px; margin: 40px 0; }
+.highlight-box p { font-size: 17px; line-height: 1.75; color: rgba(255,255,255,.85); margin: 0; font-style: italic; }
+.highlight-box cite { display: block; margin-top: 16px; font-size: 14px; color: rgba(255,255,255,.5); font-style: normal; }
+
+.principles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; margin-top: 32px; }
+.principle-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--r-lg); padding: 24px; }
+.principle-icon { font-size: 28px; margin-bottom: 12px; }
+.principle-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.principle-text { font-size: 14px; color: var(--gray-500); line-height: 1.65; }
+
+.l-footer { background: var(--navy-2,#243b58); color: rgba(255,255,255,.75); padding: 40px 24px 24px; }
+.l-footer-inner { max-width: 1120px; margin: 0 auto; display: flex; gap: 40px; flex-wrap: wrap; padding-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.l-footer-copy { max-width: 1120px; margin: 0 auto; padding-top: 20px; font-size: 12px; color: rgba(255,255,255,.4); text-align: center; }
+.l-footer-logo { font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+.l-footer-logo span { color: var(--amber); }
+
+@media (max-width: 600px) { .l-nav-link { display: none; } .highlight-box { padding: 24px; } }
+</style>
+</head>
+<body>
+<header class="l-header">
+  <div class="l-header-inner">
+    <a href="/" class="l-logo">АНТИ<span>Нарко</span>логия</a>
+    <nav class="l-nav">
+      <a href="/about.html" class="l-nav-link">О проекте</a>
+      <a href="/consultants.html" class="l-nav-link">Специалисты</a>
+      <a href="/how-it-works.html" class="l-nav-link">Как работает</a>
+      <a href="/auth.html" class="l-nav-btn">Записаться →</a>
+    </nav>
+  </div>
+</header>
+
+<div class="page-hero">
+  <h1>О проекте</h1>
+  <p>Почему мы существуем и как думаем о помощи людям с вопросами зависимости</p>
+</div>
+
+<section class="l-section">
+  <div class="l-inner">
+    <div class="section-label">Миссия</div>
+    <h2 class="section-title">Зачем это всё</h2>
+
+    <div class="prose">
+      <p>
+        Официальная наркология в России устроена так, что большинство людей предпочитают не обращаться вовсе.
+        Учёт, стигма, принудительное лечение — всё это отпугивает тех, кто реально нуждается в помощи.
+        В итоге человек остаётся один на один с проблемой.
+      </p>
+      <p>
+        Мы сделали другой вариант: прямой разговор со специалистом — без государственных структур,
+        без документов, без осуждения. Просто честный профессиональный совет.
+      </p>
+    </div>
+
+    <div class="highlight-box">
+      <p>
+        «Мы называем это "советом", а не "консультацией" намеренно. Консультация — это что-то официальное,
+        с актом и печатью. Совет — это то, что хороший врач даёт другу. Именно это мы и предлагаем.»
+      </p>
+      <cite>— Андрей Мандыбура, основатель проекта</cite>
+    </div>
+
+    <div class="prose">
+      <h3 id="mission">Что мы делаем</h3>
+      <ul>
+        <li>Объясняем, что происходит — на понятном языке, без запугивания</li>
+        <li>Помогаем понять, насколько ситуация серьёзная</li>
+        <li>Даём конкретный план действий: куда идти, к кому обращаться, чего избегать</li>
+        <li>Помогаем не попасть к мошенникам — а их в этой сфере очень много</li>
+        <li>При необходимости — сопровождаем длительно</li>
+      </ul>
+
+      <h3 id="privacy">Анонимность</h3>
+      <p>
+        Зарегистрироваться можно вообще без имени — только логин и пароль.
+        Никаких паспортных данных, никаких страховых полисов.
+        Всё, что вы говорите на созвоне, остаётся между вами и специалистом.
+      </p>
+      <p>
+        Мы не ведём никаких государственных реестров и не обязаны это делать —
+        мы не медицинская организация.
+      </p>
+
+      <h3 id="why-advice">Почему «совет», а не «консультация»</h3>
+      <p>
+        «Консультация» в медицинском смысле — это услуга лицензированного специалиста,
+        за которой тянется хвост обязательств: документация, стандарты, ответственность перед регулятором.
+        Всё это вынуждает врача говорить аккуратно, уклончиво, «по протоколу».
+      </p>
+      <p>
+        Мы продаём «совет» — то, что хороший врач говорит другу за чашкой кофе.
+        Прямо, честно, конкретно. Без бюрократических оговорок.
+      </p>
+
+      <h3 id="support">Сопровождение</h3>
+      <p>
+        Первичный совет — это старт. Иногда ситуация требует длительной работы:
+        регулярного контакта, корректировки плана, поддержки в сложные моменты.
+        Для этого есть формат сопровождения — от одного до нескольких месяцев.
+        Специалист предлагает его сам, если видит необходимость.
+        Цена обсуждается индивидуально.
+      </p>
+
+      <h3 id="approach">Доказательный подход</h3>
+      <p>
+        Наши специалисты работают по принципам доказательной медицины.
+        Никаких «авторских методик», никакого кодирования, никаких обещаний «вылечить за 1 сеанс».
+        Только то, что реально работает — подтверждено исследованиями и международной практикой.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="l-section l-section-alt">
+  <div class="l-inner-wide">
+    <div class="l-inner" style="max-width:100%;margin:0 auto">
+      <div class="section-label">Принципы</div>
+      <h2 class="section-title">Как мы работаем</h2>
+    </div>
+    <div class="principles-grid" style="max-width:1120px;margin:0 auto">
+      <div class="principle-card">
+        <div class="principle-icon">🎯</div>
+        <div class="principle-title">Конкретность</div>
+        <div class="principle-text">Никаких размытых рекомендаций «обратитесь к специалисту». Только чёткий план: что, где, как.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🤝</div>
+        <div class="principle-title">Без осуждения</div>
+        <div class="principle-text">Зависимость — это не слабость характера. Мы не читаем лекций и не осуждаем.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🔒</div>
+        <div class="principle-title">Конфиденциальность</div>
+        <div class="principle-text">Всё сказанное остаётся между вами и специалистом. Никаких утечек, никаких реестров.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">⚡</div>
+        <div class="principle-title">Быстрый доступ</div>
+        <div class="principle-text">Регистрация — меньше минуты. Ближайший слот — часто в тот же день.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🔬</div>
+        <div class="principle-title">Доказательная база</div>
+        <div class="principle-text">Только то, что подтверждено исследованиями. Никаких авторских методик и магии.</div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">💬</div>
+        <div class="principle-title">Живой разговор</div>
+        <div class="principle-text">Не чат-бот, не автоответчик. Реальный человек с реальным опытом.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="l-section" style="text-align:center;background:var(--navy);padding:64px 24px">
+  <h2 style="font-size:clamp(22px,3.5vw,34px);font-weight:800;color:#fff;margin-bottom:14px">Готовы начать?</h2>
+  <p style="font-size:16px;color:rgba(255,255,255,.7);margin-bottom:32px">Регистрация — меньше минуты. Можно анонимно.</p>
+  <a href="/auth.html" style="display:inline-flex;align-items:center;gap:8px;background:var(--amber);color:#fff;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:700">Записаться на совет →</a>
+</section>
+
+<footer class="l-footer">
+  <div class="l-footer-inner">
+    <div>
+      <div class="l-footer-logo">АНТИ<span>Нарко</span>логия</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5)">Не является медицинской организацией.</div>
+    </div>
+    <div style="display:flex;gap:40px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.4);margin-bottom:12px">Страницы</div>
+        <a href="/" style="display:block;font-size:14px;color:rgba(255,255,255,.7);padding:4px 0">Главная</a>
+        <a href="/consultants.html" style="display:block;font-size:14px;color:rgba(255,255,255,.7);padding:4px 0">Специалисты</a>
+        <a href="/how-it-works.html" style="display:block;font-size:14px;color:rgba(255,255,255,.7);padding:4px 0">Как работает</a>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.4);margin-bottom:12px">Документы</div>
+        <a href="/offer.html" style="display:block;font-size:14px;color:rgba(255,255,255,.7);padding:4px 0">Договор-оферта</a>
+        <a href="/privacy.html" style="display:block;font-size:14px;color:rgba(255,255,255,.7);padding:4px 0">Политика конфиденциальности</a>
+        <a href="/terms.html" style="display:block;font-size:14px;color:rgba(255,255,255,.7);padding:4px 0">Правила использования</a>
+      </div>
+    </div>
+  </div>
+  <div class="l-footer-copy">© 2024–2026 АНТИНаркология. Информационно-консультационные услуги — не медицинская деятельность.</div>
+</footer>
+</body>
+</html>

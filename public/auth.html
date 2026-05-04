@@ -90,6 +90,22 @@
         </div>
       </div>
 
+      <!-- Согласия — обязательные перед регистрацией -->
+      <div style="margin-bottom:14px;display:flex;flex-direction:column;gap:10px;">
+        <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--c-muted);cursor:pointer;line-height:1.5">
+          <input type="checkbox" id="consent-offer" style="margin-top:2px;flex-shrink:0;width:15px;height:15px">
+          <span>Я принимаю условия <a href="/offer.html" target="_blank" style="color:var(--c-primary)">Договора-оферты</a> и подтверждаю, что мне исполнилось 18 лет</span>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--c-muted);cursor:pointer;line-height:1.5">
+          <input type="checkbox" id="consent-pdp" style="margin-top:2px;flex-shrink:0;width:15px;height:15px">
+          <span>Я даю согласие на обработку персональных данных в соответствии с <a href="/privacy.html" target="_blank" style="color:var(--c-primary)">Политикой конфиденциальности</a></span>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--c-muted);cursor:pointer;line-height:1.5">
+          <input type="checkbox" id="consent-terms" style="margin-top:2px;flex-shrink:0;width:15px;height:15px">
+          <span>Я ознакомился с <a href="/terms.html" target="_blank" style="color:var(--c-primary)">Правилами использования</a> сайта</span>
+        </label>
+      </div>
+
       <button type="submit" class="btn btn-primary btn-full btn-lg" id="btn-register">Создать аккаунт</button>
 
       <div class="auth-divider">или войдите через</div>
@@ -207,6 +223,14 @@ document.getElementById('form-register').onsubmit = async (e) => {
 
   setLoading(btn, true, 'Создаём аккаунт...')
   try {
+    // Проверяем согласия
+    if (!document.getElementById('consent-offer').checked)
+      throw new Error('Необходимо принять условия Договора-оферты')
+    if (!document.getElementById('consent-pdp').checked)
+      throw new Error('Необходимо дать согласие на обработку персональных данных')
+    if (!document.getElementById('consent-terms').checked)
+      throw new Error('Необходимо ознакомиться с Правилами использования')
+
     if (regMode === 'email') {
       const email    = document.getElementById('reg-email').value.trim()
       const password = document.getElementById('reg-password').value
