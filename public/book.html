@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Записаться на совет — АНТИНаркология</title>
+<meta name="description" content="Запись на профессиональный совет — анонимно, без очередей.">
+<link rel="stylesheet" href="/static/app.css">
+<style>
+/* ---- Шапка ---- */
+:root {
+  --navy: #1a2e4a; --navy-2: #243b58; --navy-3: #1e3a5f;
+  --blue: #2a6496; --sky: #d6eaf8; --sky-2: #eaf4fb; --amber: #e8a020;
+  --gray-200: #e2e8f0; --gray-400: #94a3b8; --gray-500: #64748b;
+  --r: 10px; --r-lg: 16px;
+}
+
+.bk-topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(255,255,255,.97);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--gray-200);
+}
+.bk-topbar-inner {
+  max-width: 1120px; margin: 0 auto;
+  padding: 0 24px; height: 60px;
+  display: flex; align-items: center; gap: 8px;
+}
+.bk-logo {
+  font-size: 17px; font-weight: 800;
+  color: var(--navy); letter-spacing: -.3px;
+  text-decoration: none;
+}
+.bk-logo span { color: var(--amber); }
+.bk-nav { display: flex; gap: 2px; margin-left: auto; align-items: center; }
+.bk-nav a {
+  padding: 7px 14px; border-radius: var(--r);
+  font-size: 14px; font-weight: 500; color: var(--gray-500);
+  text-decoration: none; transition: color .15s, background .15s;
+}
+.bk-nav a:hover { color: var(--navy); background: var(--sky-2); }
+.bk-nav .bk-nav-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: var(--gray-400); font-size: 14px;
+}
+
+/* ---- Layout ---- */
+.bk-page {
+  min-height: calc(100vh - 60px);
+  background: var(--c-bg, #f8fafc);
+  padding: 40px 24px 80px;
+}
+.bk-wrap { max-width: 640px; margin: 0 auto; }
+
+/* ---- Уведомление для авторизованных ---- */
+.bk-auth-notice {
+  background: #fff; border: 1px solid var(--gray-200);
+  border-radius: var(--r-lg); padding: 18px 22px;
+  margin-bottom: 24px;
+  display: flex; align-items: center; gap: 14px;
+}
+.bk-auth-notice-icon { font-size: 28px; flex-shrink: 0; }
+.bk-auth-notice-text { font-size: 14px; color: var(--c-muted, #64748b); line-height: 1.55; flex: 1; }
+.bk-auth-notice-text strong { color: var(--c-text, #1e293b); }
+
+/* ---- Заголовок ---- */
+.bk-heading {
+  margin-bottom: 28px;
+}
+.bk-heading h1 {
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 800; color: var(--navy);
+  letter-spacing: -.02em; margin-bottom: 6px;
+}
+.bk-heading p { font-size: 15px; color: var(--c-muted, #64748b); }
+
+/* ---- Прогресс ---- */
+.bk-progress {
+  display: flex; align-items: center; gap: 0;
+  margin-bottom: 32px;
+}
+.bk-step-item {
+  display: flex; align-items: center; gap: 8px; flex: 1;
+}
+.bk-step-item:last-child { flex: 0; }
+.bk-step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
+  transition: background .2s, color .2s;
+}
+.bk-step-num.done   { background: #dcfce7; color: #16a34a; }
+.bk-step-num.active { background: var(--navy); color: #fff; }
+.bk-step-num.future { background: var(--gray-200); color: var(--gray-400); }
+.bk-step-label { font-size: 13px; font-weight: 500; white-space: nowrap; }
+.bk-step-label.active { color: var(--navy); font-weight: 700; }
+.bk-step-label.future { color: var(--gray-400); }
+.bk-step-line {
+  flex: 1; height: 2px; background: var(--gray-200); margin: 0 8px;
+}
+.bk-step-line.done { background: #bbf7d0; }
+
+/* ---- Slot picker (days + times) ---- */
+.slot-days {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;
+}
+.day-btn {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 14px; border-radius: var(--r);
+  border: 1.5px solid var(--gray-200); background: #fff;
+  cursor: pointer; transition: border-color .15s, background .15s;
+  min-width: 56px;
+}
+.day-btn:hover { border-color: var(--navy); }
+.day-btn.active { border-color: var(--navy); background: var(--sky-2); }
+.day-num { font-size: 17px; font-weight: 800; color: var(--navy); line-height: 1; }
+.day-name { font-size: 11px; color: var(--gray-400); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+
+.time-slots { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.time-slot {
+  padding: 8px 16px; border-radius: var(--r);
+  border: 1.5px solid var(--gray-200); background: #fff;
+  font-size: 15px; font-weight: 600; color: var(--navy);
+  cursor: pointer; transition: border-color .15s, background .15s;
+}
+.time-slot:hover { border-color: var(--navy); }
+.time-slot.selected { border-color: var(--navy); background: var(--navy); color: #fff; }
+
+.msk-note {
+  font-size: 12px; color: var(--gray-400);
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 5px;
+}
+
+/* ---- Format cards ---- */
+.format-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.format-option {
+  border: 2px solid var(--gray-200); border-radius: var(--r-lg);
+  padding: 18px 14px; cursor: pointer; text-align: center;
+  transition: border-color .15s, background .15s;
+  background: #fff;
+}
+.format-option:hover { border-color: var(--navy); }
+.format-option.selected { border-color: var(--navy); background: var(--sky-2); }
+.fmt-icon { font-size: 28px; margin-bottom: 8px; }
+.fmt-label { font-size: 14px; font-weight: 700; color: var(--navy); }
+
+/* ---- Footer ---- */
+.bk-footer {
+  background: var(--navy-3, #1e3a5f);
+  color: rgba(255,255,255,.6);
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+}
+.bk-footer a { color: rgba(255,255,255,.7); text-decoration: underline; }
+.bk-footer a:hover { color: #fff; }
+
+@media (max-width: 600px) {
+  .bk-nav .bk-nav-link-hide { display: none; }
+  .bk-progress { overflow-x: auto; }
+}
+</style>
+</head>
+<body>
+
+<!-- ====== ШАПКА ====== -->
+<header class="bk-topbar">
+  <div class="bk-topbar-inner">
+    <a href="/" class="bk-logo">АНТИ<span>Нарко</span>логия</a>
+    <nav class="bk-nav">
+      <a href="/" class="bk-nav-link-hide">← На главную</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ====== КОНТЕНТ ====== -->
+<div class="bk-page">
+  <div class="bk-wrap">
+
+    <!-- Уведомление для уже авторизованных — покажем через JS -->
+    <div id="auth-notice" style="display:none" class="bk-auth-notice">
+      <div class="bk-auth-notice-icon">👋</div>
+      <div class="bk-auth-notice-text">
+        <strong>Вы уже зарегистрированы.</strong>
+        Продолжите как <span id="auth-notice-name">пользователь</span>
+        или <a href="/auth.html?next=/book.html" id="auth-notice-switch">войдите в другой аккаунт</a>.
+      </div>
+    </div>
+
+    <!-- Уведомление для неавторизованных -->
+    <div id="anon-notice" class="alert alert-info" style="margin-bottom:24px;display:none">
+      У вас уже есть аккаунт?
+      <a href="/auth.html?next=/book.html" style="font-weight:700;color:var(--c-primary);margin-left:4px">Войти →</a>
+    </div>
+
+    <div class="bk-heading">
+      <h1>Записаться на совет</h1>
+      <p>Первичный совет — 1 000 ₽ · от 15 до 60 минут · время московское (МСК)</p>
+    </div>
+
+    <!-- Прогресс -->
+    <div class="bk-progress" id="bk-progress"></div>
+
+    <!-- Контент шага -->
+    <div id="bk-step-content"></div>
+
+  </div>
+</div>
+
+<!-- ====== ПОДВАЛ ====== -->
+<footer class="bk-footer">
+  © 2024–2026 АНТИНаркология ·
+  <a href="/offer.html">Оферта</a> ·
+  <a href="/privacy.html">Конфиденциальность</a> ·
+  <a href="/terms.html">Правила</a>
+</footer>
+
+<script src="/static/api.js"></script>
+<script>
+// ============================================================
+// Страница записи — /book.html
+// Поток: [1] Выбор формата → [2] Выбор времени → [3] Регистрация/вход → [4] ЛК с записью
+// Если уже авторизован: шаг 3 пропускается, сразу создаётся запись
+// ============================================================
+
+const BK = {
+  step: 1,          // 1 формат, 2 время, 3 аккаунт, 4 итог
+  format: null,
+  contact: '',
+  slotId: null,
+  slotDate: null,
+  tariffId: null,
+  consultantId: 1,
+  question: '',
+  currentUser: null,
+  allSlots: [],
+  selectedDay: null,
+}
+
+const STEPS = [
+  { n: 1, label: 'Формат' },
+  { n: 2, label: 'Время' },
+  { n: 3, label: 'Аккаунт' },
+  { n: 4, label: 'Описание' },
+  { n: 5, label: 'Оплата' },
+]
+
+// ---- Инициализация ----
+async function init() {
+  // Загружаем тариф
+  try {
+    const { tariffs } = await fetch('/api/tariffs').then(r => r.json())
+    const adv = (tariffs || []).find(t => t.is_advice) || tariffs?.[0]
+    if (adv) BK.tariffId = adv.id
+  } catch {}
+
+  // Проверяем авторизацию
+  try {
+    BK.currentUser = await Auth.me()
+  } catch {}
+
+  if (BK.currentUser) {
+    // Авторизован: показываем уведомление, шаг 3 (аккаунт) пропускаем
+    const notice = document.getElementById('auth-notice')
+    notice.style.display = 'flex'
+    document.getElementById('auth-notice-name').textContent =
+      BK.currentUser.display_name || BK.currentUser.login || BK.currentUser.email || 'пользователь'
+    // Шаги: 1 → 2 → 4 → 5 (пропускаем 3)
+  } else {
+    // Не авторизован: показываем подсказку войти
+    document.getElementById('anon-notice').style.display = ''
+  }
+
+  renderStep()
+}
+
+// ---- Прогресс ----
+function renderProgress() {
+  // Определяем «видимые» шаги (если авторизован — шаг 3 «Аккаунт» показываем как пройденный/серый)
+  const progress = document.getElementById('bk-progress')
+  let html = ''
+  STEPS.forEach((s, i) => {
+    // Определяем состояние
+    let stepNum = s.n
+    // Если авторизован, шаг 3 "пропускается"
+    let displayStep = BK.currentUser ? (BK.step >= 3 ? BK.step + 1 : BK.step) : BK.step
+    let state = 'future'
+    if (BK.currentUser && s.n === 3) state = 'done'  // пропущен = считается пройденным
+    else if (s.n < (BK.currentUser && BK.step >= 3 ? BK.step + 1 : BK.step)) state = 'done'
+    else if (s.n === (BK.currentUser && BK.step >= 3 ? BK.step + 1 : BK.step)) state = 'active'
+
+    html += `<div class="bk-step-item">
+      <div class="bk-step-num ${state}">${state === 'done' ? '✓' : s.n}</div>
+      <span class="bk-step-label ${state}">${s.label}</span>
+    </div>`
+    if (i < STEPS.length - 1) {
+      html += `<div class="bk-step-line ${state === 'done' ? 'done' : ''}"></div>`
+    }
+  })
+  progress.innerHTML = html
+}
+
+function renderStep() {
+  renderProgress()
+  const cont = document.getElementById('bk-step-content')
+  cont.innerHTML = '<div class="loading-overlay" style="min-height:120px"><div class="spinner"></div></div>'
+
+  if (BK.step === 1) renderStepFormat(cont)
+  else if (BK.step === 2) renderStepSlot(cont)
+  else if (BK.step === 3) renderStepAccount(cont)
+  else if (BK.step === 4) renderStepQuestion(cont)
+  else if (BK.step === 5) renderStepConfirm(cont)
+}
+
+function goNext() {
+  // Если авторизован — пропускаем шаг 3
+  if (BK.currentUser && BK.step === 2) { BK.step = 4 }
+  else { BK.step++ }
+  renderStep()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+function goBack() {
+  if (BK.currentUser && BK.step === 4) { BK.step = 2 }
+  else { BK.step-- }
+  if (BK.step < 1) BK.step = 1
+  renderStep()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// ============================================================
+// ШАГ 1 — Выбор формата
+// ============================================================
+function renderStepFormat(cont) {
+  const formats = [
+    { id: 'telemost', icon: '📹', label: 'TeleМост', desc: 'Видеозвонок в браузере' },
+    { id: 'telegram', icon: '💬', label: 'Telegram / Макс', desc: 'Голосовой или видеозвонок' },
+    { id: 'phone',    icon: '📞', label: 'Телефон', desc: 'Обычный звонок' },
+  ]
+
+  cont.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Как удобнее поговорить?</div>
+      </div>
+      <div class="card-body">
+        <div class="format-grid" id="fmt-grid">
+          ${formats.map(f => `
+            <div class="format-option ${BK.format === f.id ? 'selected' : ''}"
+                 data-fmt="${f.id}" onclick="selectFmt('${f.id}')">
+              <div class="fmt-icon">${f.icon}</div>
+              <div class="fmt-label">${f.label}</div>
+              <div style="font-size:12px;color:var(--c-muted);margin-top:3px">${f.desc}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div id="contact-wrap" style="display:${BK.format && BK.format !== 'telemost' ? '' : 'none'};margin-top:16px">
+          <div class="form-group">
+            <label class="form-label" id="contact-lbl">Ваш контакт</label>
+            <input class="form-input" id="contact-inp" type="text"
+              placeholder="@username или +7..."
+              value="${BK.contact}"
+              oninput="BK.contact = this.value">
+            <div class="form-hint" id="contact-hint-txt">Консультант напишет первым в согласованное время</div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;display:flex;justify-content:flex-end">
+          <button class="btn btn-primary" id="btn-fmt-next"
+            ${BK.format ? '' : 'disabled'}
+            onclick="goNext()">
+            Далее — выбрать время →
+          </button>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+window.selectFmt = (fmt) => {
+  BK.format = fmt
+  document.querySelectorAll('.format-option').forEach(el =>
+    el.classList.toggle('selected', el.dataset.fmt === fmt)
+  )
+  document.getElementById('btn-fmt-next').disabled = false
+  const wrap  = document.getElementById('contact-wrap')
+  const lbl   = document.getElementById('contact-lbl')
+  const hint  = document.getElementById('contact-hint-txt')
+  wrap.style.display = fmt !== 'telemost' ? '' : 'none'
+  if (fmt === 'telegram') {
+    lbl.textContent  = 'Ваш Telegram или Макс'
+    hint.textContent = '@username в Telegram или ссылка на профиль Макс'
+  } else if (fmt === 'phone') {
+    lbl.textContent  = 'Ваш номер телефона'
+    hint.textContent = 'Консультант позвонит в согласованное время'
+  }
+}
+
+// ============================================================
+// ШАГ 2 — Выбор времени
+// ============================================================
+async function renderStepSlot(cont) {
+  cont.innerHTML = '<div class="loading-overlay" style="min-height:160px"><div class="spinner"></div> Загружаем расписание...</div>'
+
+  if (BK.allSlots.length === 0) {
+    try {
+      const from = mskDateStr(new Date())
+      const to   = mskDateStr(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
+      const resp = await API.get(`/slots?consultant_id=1&from=${from}&to=${to}`)
+      BK.allSlots = resp.slots || []
+    } catch {}
+  }
+
+  // Группируем по дням (МСК)
+  const byDay = {}
+  BK.allSlots.forEach(s => {
+    const day = new Date(s.starts_at).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })
+    if (!byDay[day]) byDay[day] = []
+    byDay[day].push(s)
+  })
+  const days = Object.keys(byDay)
+
+  if (days.length === 0) {
+    cont.innerHTML = `
+      <div class="card">
+        <div class="card-header"><div class="card-title">Выберите время <span class="msk-note" style="display:inline-flex;margin-left:8px">🕐 Время московское (МСК)</span></div></div>
+        <div class="card-body">
+          <div class="alert alert-info">
+            Свободных слотов пока нет. Продолжите запись — консультант свяжется с вами для выбора удобного времени.
+          </div>
+          <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm" onclick="goBack()">← Назад</button>
+            <button class="btn btn-primary" onclick="BK.slotId=null;BK.slotDate=null;goNext()">
+              Продолжить без выбора времени →
+            </button>
+          </div>
+        </div>
+      </div>
+    `
+    return
+  }
+
+  if (!BK.selectedDay) BK.selectedDay = days[0]
+
+  function buildSlotHtml() {
+    const daySlots = byDay[BK.selectedDay] || []
+    return `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Выберите удобное время</div>
+        </div>
+        <div class="card-body">
+          <div class="msk-note">🕐 Всё время московское (МСК, UTC+3)</div>
+
+          <div class="slot-days" id="slot-days">
+            ${days.map(d => {
+              const dt = new Date(byDay[d][0].starts_at)
+              return `
+                <button class="day-btn ${d === BK.selectedDay ? 'active' : ''}"
+                        onclick="pickDay('${d}')">
+                  <span class="day-num">${dt.toLocaleDateString('ru-RU',{day:'numeric',timeZone:'Europe/Moscow'})}</span>
+                  <span class="day-name">${dt.toLocaleDateString('ru-RU',{weekday:'short',timeZone:'Europe/Moscow'})}</span>
+                </button>
+              `
+            }).join('')}
+          </div>
+
+          <div class="time-slots" id="time-slots">
+            ${daySlots.map(s => {
+              const t = new Date(s.starts_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'})
+              return `<button class="time-slot ${BK.slotId === s.id ? 'selected' : ''}"
+                        onclick="pickSlot(${s.id}, '${s.starts_at}')">${t}</button>`
+            }).join('')}
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm" onclick="goBack()">← Назад</button>
+            <button class="btn btn-primary" id="btn-slot-next"
+              ${BK.slotId ? '' : 'disabled'}
+              onclick="goNext()">
+              Далее →
+            </button>
+            <button class="btn btn-ghost btn-sm"
+              onclick="BK.slotId=null;BK.slotDate=null;goNext()">
+              Пропустить — без конкретного времени
+            </button>
+          </div>
+        </div>
+      </div>
+    `
+  }
+
+  cont.innerHTML = buildSlotHtml()
+
+  window.pickDay = (d) => {
+    BK.selectedDay = d
+    cont.innerHTML = buildSlotHtml()
+  }
+  window.pickSlot = (id, starts_at) => {
+    BK.slotId   = id
+    BK.slotDate = starts_at
+    document.querySelectorAll('.time-slot').forEach(el => {
+      const t = new Date(starts_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'})
+      el.classList.toggle('selected', el.textContent.trim() === t && el.onclick?.toString().includes(id))
+    })
+    // Перерисовываем для правильной подсветки
+    cont.innerHTML = buildSlotHtml()
+  }
+}
+
+// ============================================================
+// ШАГ 3 — Аккаунт (только для неавторизованных)
+// ============================================================
+function renderStepAccount(cont) {
+  cont.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Войдите или зарегистрируйтесь</div>
+      </div>
+      <div class="card-body">
+        <p style="font-size:14px;color:var(--c-muted);margin-bottom:20px">
+          Нужен аккаунт, чтобы сохранить запись и перейти к оплате.
+          Можно <strong>анонимно</strong> — только логин и пароль.
+        </p>
+
+        <!-- Переключатель -->
+        <div class="auth-tabs" id="bk-mode-tabs" style="margin-bottom:20px">
+          <button class="auth-tab active" data-bkmode="login">Войти</button>
+          <button class="auth-tab" data-bkmode="register">Создать аккаунт</button>
+        </div>
+
+        <div id="bk-alert"></div>
+
+        <!-- Форма входа -->
+        <form id="bk-form-login">
+          <div class="form-group">
+            <label class="form-label">Email или логин</label>
+            <input class="form-input" id="bk-login-id" type="text" placeholder="email или ваш логин" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Пароль</label>
+            <input class="form-input" id="bk-login-pw" type="password" autocomplete="current-password">
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn btn-outline btn-sm" onclick="goBack()">← Назад</button>
+            <button type="submit" class="btn btn-primary" id="bk-btn-login">Войти и продолжить →</button>
+          </div>
+        </form>
+
+        <!-- Форма регистрации -->
+        <form id="bk-form-reg" style="display:none">
+          <!-- Подрежимы -->
+          <div class="auth-tabs" id="bk-reg-tabs" style="margin-bottom:14px">
+            <button type="button" class="auth-tab active" data-bkregmode="email">По email</button>
+            <button type="button" class="auth-tab" data-bkregmode="anon">Анонимно</button>
+          </div>
+
+          <div id="bk-reg-email">
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input class="form-input" id="bk-reg-email-val" type="email" placeholder="your@email.com" autocomplete="email">
+              <div class="form-hint">На него придёт подтверждение записи</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Пароль</label>
+              <input class="form-input" id="bk-reg-pw" type="password" placeholder="Минимум 6 символов" autocomplete="new-password">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Как к вам обращаться? <span style="font-weight:400;color:var(--c-muted)">(необязательно)</span></label>
+              <input class="form-input" id="bk-reg-name" type="text" placeholder="Имя или псевдоним">
+            </div>
+          </div>
+
+          <div id="bk-reg-anon" style="display:none">
+            <div class="anon-hint" style="background:#f8f7f4;border:1px solid var(--c-border);border-radius:8px;padding:12px 14px;font-size:13px;color:var(--c-muted);line-height:1.5;margin-bottom:14px">
+              <strong style="color:var(--c-text)">Полная анонимность:</strong> никакой почты и телефона. Придумайте логин и пароль — и запомните их, восстановить будет нельзя.
+            </div>
+            <div class="form-group">
+              <label class="form-label">Логин (придумайте любой)</label>
+              <input class="form-input" id="bk-reg-login" type="text" placeholder="Например: tiger2025" autocomplete="off">
+              <div class="form-hint">Минимум 3 символа. Латиница или цифры.</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Пароль</label>
+              <input class="form-input" id="bk-reg-anon-pw" type="password" placeholder="Минимум 6 символов" autocomplete="new-password">
+              <div class="form-hint">⚠ Пароль нельзя восстановить — сохраните его сами</div>
+            </div>
+          </div>
+
+          <!-- Согласия -->
+          <div style="margin-bottom:14px;display:flex;flex-direction:column;gap:10px;">
+            <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--c-muted);cursor:pointer;line-height:1.5">
+              <input type="checkbox" id="bk-consent-offer" style="margin-top:2px;flex-shrink:0;width:15px;height:15px">
+              <span>Я принимаю условия <a href="/offer.html" target="_blank" style="color:var(--c-primary)">Договора-оферты</a> и подтверждаю, что мне исполнилось 18 лет</span>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--c-muted);cursor:pointer;line-height:1.5">
+              <input type="checkbox" id="bk-consent-pdp" style="margin-top:2px;flex-shrink:0;width:15px;height:15px">
+              <span>Я даю согласие на обработку персональных данных в соответствии с <a href="/privacy.html" target="_blank" style="color:var(--c-primary)">Политикой конфиденциальности</a></span>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--c-muted);cursor:pointer;line-height:1.5">
+              <input type="checkbox" id="bk-consent-terms" style="margin-top:2px;flex-shrink:0;width:15px;height:15px">
+              <span>Я ознакомился с <a href="/terms.html" target="_blank" style="color:var(--c-primary)">Правилами использования</a></span>
+            </label>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn btn-outline btn-sm" onclick="goBack()">← Назад</button>
+            <button type="submit" class="btn btn-primary" id="bk-btn-reg">Создать аккаунт →</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `
+
+  // Переключение режима
+  let bkMode = 'login'
+  let bkRegMode = 'email'
+
+  document.querySelectorAll('[data-bkmode]').forEach(btn => {
+    btn.onclick = () => {
+      bkMode = btn.dataset.bkmode
+      document.querySelectorAll('[data-bkmode]').forEach(b => b.classList.toggle('active', b === btn))
+      document.getElementById('bk-form-login').style.display = bkMode === 'login' ? '' : 'none'
+      document.getElementById('bk-form-reg').style.display   = bkMode === 'register' ? '' : 'none'
+    }
+  })
+  document.querySelectorAll('[data-bkregmode]').forEach(btn => {
+    btn.onclick = () => {
+      bkRegMode = btn.dataset.bkregmode
+      document.querySelectorAll('[data-bkregmode]').forEach(b => b.classList.toggle('active', b === btn))
+      document.getElementById('bk-reg-email').style.display = bkRegMode === 'email' ? '' : 'none'
+      document.getElementById('bk-reg-anon').style.display  = bkRegMode === 'anon'  ? '' : 'none'
+    }
+  })
+
+  // Вход
+  document.getElementById('bk-form-login').onsubmit = async (e) => {
+    e.preventDefault()
+    const alertBox = document.getElementById('bk-alert')
+    const btn = document.getElementById('bk-btn-login')
+    const identity = document.getElementById('bk-login-id').value.trim()
+    const password = document.getElementById('bk-login-pw').value
+    if (!identity || !password) { showAlert(alertBox, 'error', 'Заполните все поля'); return }
+    setLoading(btn, true, 'Входим...')
+    try {
+      const isEmail = identity.includes('@')
+      await API.post('/auth/login', isEmail ? { email: identity, password } : { login: identity, password })
+      BK.currentUser = await Auth.me()
+      // Скрыть уведомление для неавторизованных, показать для авторизованных
+      document.getElementById('anon-notice').style.display = 'none'
+      const notice = document.getElementById('auth-notice')
+      notice.style.display = 'flex'
+      document.getElementById('auth-notice-name').textContent =
+        BK.currentUser?.display_name || BK.currentUser?.login || BK.currentUser?.email || 'пользователь'
+      goNext()
+    } catch (err) {
+      showAlert(alertBox, 'error', err.message)
+      setLoading(btn, false)
+    }
+  }
+
+  // Регистрация
+  document.getElementById('bk-form-reg').onsubmit = async (e) => {
+    e.preventDefault()
+    const alertBox = document.getElementById('bk-alert')
+    const btn = document.getElementById('bk-btn-reg')
+    if (!document.getElementById('bk-consent-offer').checked)
+      { showAlert(alertBox, 'error', 'Необходимо принять условия Договора-оферты'); return }
+    if (!document.getElementById('bk-consent-pdp').checked)
+      { showAlert(alertBox, 'error', 'Необходимо дать согласие на обработку персональных данных'); return }
+    if (!document.getElementById('bk-consent-terms').checked)
+      { showAlert(alertBox, 'error', 'Необходимо ознакомиться с Правилами использования'); return }
+    setLoading(btn, true, 'Создаём аккаунт...')
+    try {
+      if (bkRegMode === 'email') {
+        const email    = document.getElementById('bk-reg-email-val').value.trim()
+        const password = document.getElementById('bk-reg-pw').value
+        const name     = document.getElementById('bk-reg-name').value.trim()
+        if (!email || !password) throw new Error('Заполните email и пароль')
+        await API.post('/auth/register/email', { email, password, display_name: name || undefined })
+      } else {
+        const login    = document.getElementById('bk-reg-login').value.trim()
+        const password = document.getElementById('bk-reg-anon-pw').value
+        if (!login || !password) throw new Error('Заполните логин и пароль')
+        await API.post('/auth/register/anonymous', { login, password })
+        sessionStorage.setItem('anon_pwd_hint', password)
+      }
+      BK.currentUser = await Auth.me()
+      document.getElementById('anon-notice').style.display = 'none'
+      const notice = document.getElementById('auth-notice')
+      notice.style.display = 'flex'
+      document.getElementById('auth-notice-name').textContent =
+        BK.currentUser?.display_name || BK.currentUser?.login || BK.currentUser?.email || 'пользователь'
+      goNext()
+    } catch (err) {
+      showAlert(alertBox, 'error', err.message)
+      setLoading(btn, false)
+    }
+  }
+}
+
+// ============================================================
+// ШАГ 4 — Описание ситуации
+// ============================================================
+function renderStepQuestion(cont) {
+  const slotInfo = BK.slotDate
+    ? `<div class="alert alert-info" style="margin-bottom:14px">📅 Выбранное время: <strong>${
+        new Date(BK.slotDate).toLocaleString('ru-RU',{
+          weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit',
+          timeZone:'Europe/Moscow'
+        })
+      } МСК</strong></div>`
+    : `<div class="alert alert-warning" style="margin-bottom:14px">Время не выбрано — консультант свяжется с вами для его согласования.</div>`
+
+  cont.innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="card-title">Опишите ситуацию (необязательно)</div></div>
+      <div class="card-body">
+        ${slotInfo}
+        <div class="form-group">
+          <label class="form-label">Ваш вопрос или ситуация</label>
+          <textarea class="form-textarea" id="bk-question" rows="5"
+            placeholder="Опишите, что вас беспокоит — кратко или подробно. Всё конфиденциально."
+            oninput="BK.question = this.value">${BK.question}</textarea>
+          <div class="form-hint">Это помогает консультанту подготовиться. Можно оставить пустым.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" onclick="goBack()">← Изменить время</button>
+          <button class="btn btn-primary" onclick="goNext()">Перейти к оплате →</button>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+// ============================================================
+// ШАГ 5 — Подтверждение и оплата
+// ============================================================
+async function renderStepConfirm(cont) {
+  cont.innerHTML = '<div class="loading-overlay" style="min-height:120px"><div class="spinner"></div></div>'
+
+  let priceFmt = '1 000 ₽'
+  try {
+    const { tariffs } = await API.get('/tariffs')
+    const adv = (tariffs || []).find(t => t.id === BK.tariffId) || tariffs?.[0]
+    if (adv?.price_rub) priceFmt = Fmt.money(adv.price_rub)
+  } catch {}
+
+  const fmtMap = { telemost: '📹 TeleМост', telegram: '💬 Telegram / Макс', phone: '📞 Телефон' }
+  const slotText = BK.slotDate
+    ? new Date(BK.slotDate).toLocaleString('ru-RU',{
+        weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit',
+        timeZone:'Europe/Moscow'
+      }) + ' МСК'
+    : 'По договорённости (консультант свяжется)'
+
+  cont.innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="card-title">Подтвердите запись</div></div>
+      <div class="card-body">
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+          <tr>
+            <td style="padding:9px 0;color:var(--c-muted);font-size:14px;width:38%">Услуга</td>
+            <td style="padding:9px 0;font-size:14px;font-weight:600">Первичный совет</td>
+          </tr>
+          <tr>
+            <td style="padding:9px 0;color:var(--c-muted);font-size:14px">Время</td>
+            <td style="padding:9px 0;font-size:14px">${slotText}</td>
+          </tr>
+          <tr>
+            <td style="padding:9px 0;color:var(--c-muted);font-size:14px">Формат</td>
+            <td style="padding:9px 0;font-size:14px">${fmtMap[BK.format] || BK.format}</td>
+          </tr>
+          ${BK.contact ? `<tr>
+            <td style="padding:9px 0;color:var(--c-muted);font-size:14px">Ваш контакт</td>
+            <td style="padding:9px 0;font-size:14px">${BK.contact}</td>
+          </tr>` : ''}
+          <tr style="border-top:2px solid var(--c-border)">
+            <td style="padding:12px 0 4px;font-weight:700;font-size:15px">К оплате</td>
+            <td style="padding:12px 0 4px;font-size:22px;font-weight:800;color:var(--c-primary)">${priceFmt}</td>
+          </tr>
+        </table>
+
+        <div class="alert alert-info" style="font-size:13px;margin-bottom:16px">
+          💳 Оплата через ЮKassa — банковская карта или СБП. Списывается однократно, без скрытых платежей.
+        </div>
+
+        <div id="bk-confirm-alert"></div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" onclick="goBack()">← Изменить описание</button>
+          <button class="btn btn-accent btn-lg" id="bk-btn-pay" onclick="submitBkBooking()">
+            Записаться и оплатить →
+          </button>
+        </div>
+        <p style="font-size:12px;color:var(--c-muted);margin-top:10px">
+          Нажимая кнопку, вы подтверждаете согласие с
+          <a href="/offer.html" target="_blank">условиями оферты</a>.
+        </p>
+      </div>
+    </div>
+  `
+}
+
+async function submitBkBooking() {
+  const btn = document.getElementById('bk-btn-pay')
+  const alertBox = document.getElementById('bk-confirm-alert')
+  setLoading(btn, true, 'Создаём запись...')
+
+  try {
+    const body = {
+      consultant_id:   BK.consultantId,
+      slot_id:         BK.slotId || undefined,
+      tariff_id:       BK.tariffId,
+      meeting_format:  BK.format,
+      client_question: BK.question || undefined,
+      client_contact:  BK.contact || undefined,
+    }
+    const { paymentUrl, bookingId } = await API.post('/bookings', body)
+
+    if (paymentUrl && (paymentUrl.includes('yookassa') || paymentUrl.includes('yoomoney'))) {
+      window.location.href = paymentUrl
+    } else {
+      // Dev-режим: переходим в ЛК
+      toast('Запись создана! Переходим в личный кабинет...', 'success', 3000)
+      setTimeout(() => { window.location.href = '/lk.html' }, 1800)
+    }
+  } catch (err) {
+    showAlert(alertBox, 'error', err.message)
+    setLoading(btn, false)
+  }
+}
+
+// Запуск
+init()
+</script>
+</body>
+</html>

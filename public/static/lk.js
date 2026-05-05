@@ -397,6 +397,7 @@ async function renderStepSlot(cont) {
       <div class="card">
         <div class="card-header"><div class="card-title">Выберите удобное время</div></div>
         <div class="card-body">
+          <div style="font-size:12px;color:var(--c-muted);margin-bottom:12px;display:flex;align-items:center;gap:4px">🕐 Всё время московское (МСК, UTC+3)</div>
           <div class="slot-days" id="slot-days">
             ${days.map(d => {
               const firstSlot = byDay[d][0]

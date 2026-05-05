@@ -30,6 +30,8 @@ import offerHtml        from '../../public/offer.html?raw'
 import privacyHtml      from '../../public/privacy.html?raw'
 // @ts-ignore
 import termsHtml        from '../../public/terms.html?raw'
+// @ts-ignore
+import bookHtml         from '../../public/book.html?raw'
 
 // ---- Основные приложения ----
 pages.get('/',                 (c) => c.html(indexHtml))
@@ -42,6 +44,10 @@ pages.get('/consultant.html',  (c) => c.html(consultantHtml))
 pages.get('/about.html',       (c) => c.html(aboutHtml))
 pages.get('/consultants.html', (c) => c.html(consultantsHtml))
 pages.get('/how-it-works.html',(c) => c.html(howItWorksHtml))
+
+// ---- Страница записи ----
+pages.get('/book.html',        (c) => c.html(bookHtml))
+pages.get('/book',             (c) => c.redirect('/book.html'))
 
 // ---- Правовые страницы ----
 pages.get('/offer.html',       (c) => c.html(offerHtml))

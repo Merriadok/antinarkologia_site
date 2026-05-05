@@ -8,25 +8,47 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --navy: #1a2e4a; --navy-2: #243b58; --blue: #2a6496; --blue-lt: #3a7bbf;
-  --sky: #d6eaf8; --sky-2: #eaf4fb; --amber: #e8a020;
+  --navy: #1a2e4a; --navy-2: #243b58; --navy-3: #1e3a5f;
+  --blue: #2a6496; --blue-lt: #3a7bbf;
+  --sky: #d6eaf8; --sky-2: #eaf4fb; --amber: #e8a020; --amber-lt: #fef3d0;
   --white: #ffffff; --gray-50: #f8fafc; --gray-100: #f1f5f9;
-  --gray-200: #e2e8f0; --gray-400: #94a3b8; --gray-500: #64748b;
-  --gray-700: #334155; --text: #1e293b; --r: 10px; --r-lg: 16px;
+  --gray-200: #e2e8f0; --gray-300: #cbd5e1; --gray-400: #94a3b8; --gray-500: #64748b;
+  --gray-700: #334155; --gray-800: #1e293b; --text: #1e293b; --r: 10px; --r-lg: 16px;
+  --sh-sm: 0 1px 3px rgba(0,0,0,.08); --sh: 0 4px 12px rgba(0,0,0,.08);
 }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--white); color: var(--text); line-height: 1.65; -webkit-font-smoothing: antialiased; }
 a { color: inherit; text-decoration: none; }
 
+/* ---- Шапка ---- */
 .l-header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,.97); backdrop-filter: blur(12px); border-bottom: 1px solid var(--gray-200); }
 .l-header-inner { max-width: 1120px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; gap: 8px; }
-.l-logo { font-size: 17px; font-weight: 800; color: var(--navy); letter-spacing: -.3px; }
+.l-logo { font-size: 17px; font-weight: 800; color: var(--navy); letter-spacing: -.3px; white-space: nowrap; }
 .l-logo span { color: var(--amber); }
 .l-nav { display: flex; gap: 2px; margin-left: auto; align-items: center; }
-.l-nav-link { padding: 7px 14px; border-radius: var(--r); font-size: 14px; font-weight: 500; color: var(--gray-500); transition: color .15s, background .15s; }
+.l-nav-link { padding: 7px 14px; border-radius: var(--r); font-size: 14px; font-weight: 500; color: var(--gray-500); transition: color .15s, background .15s; white-space: nowrap; }
 .l-nav-link:hover { color: var(--navy); background: var(--sky-2); }
-.l-nav-btn { display: inline-flex; align-items: center; background: var(--navy); color: #fff; padding: 8px 18px; border-radius: var(--r); font-size: 14px; font-weight: 600; margin-left: 8px; transition: background .15s; }
+.l-nav-link.active { color: var(--navy); font-weight: 700; background: var(--sky-2); }
+.l-nav-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--navy); color: #fff; padding: 8px 18px; border-radius: var(--r); font-size: 14px; font-weight: 600; margin-left: 8px; transition: background .15s; white-space: nowrap; }
 .l-nav-btn:hover { background: var(--navy-2); }
 
+/* ---- Подвал ---- */
+.l-footer { background: var(--navy-3); color: rgba(255,255,255,.75); padding: 48px 24px 24px; }
+.l-footer-inner {
+  max-width: 1120px; margin: 0 auto;
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px;
+  padding-bottom: 40px; border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.l-footer-logo { font-size: 17px; font-weight: 800; color: #fff; margin-bottom: 12px; }
+.l-footer-logo span { color: var(--amber); }
+.l-footer-desc { font-size: 13px; color: rgba(255,255,255,.55); line-height: 1.7; }
+.l-footer-col h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: rgba(255,255,255,.5); margin-bottom: 16px; }
+.l-footer-col a { display: block; font-size: 14px; color: rgba(255,255,255,.7); padding: 4px 0; transition: color .15s; }
+.l-footer-col a:hover { color: #fff; }
+.l-footer-copy { max-width: 1120px; margin: 0 auto; padding-top: 24px; font-size: 12px; color: rgba(255,255,255,.4); text-align: center; }
+@media (max-width: 900px) { .l-footer-inner { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .l-footer-inner { grid-template-columns: 1fr; } }
+
+/* ---- Страница ---- */
 .page-hero { background: var(--navy); padding: 64px 24px 56px; text-align: center; }
 .page-hero h1 { font-size: clamp(26px, 4vw, 42px); font-weight: 800; color: #fff; letter-spacing: -.03em; margin-bottom: 14px; }
 .page-hero p { font-size: 16px; color: rgba(255,255,255,.7); max-width: 560px; margin: 0 auto; }
@@ -54,24 +76,21 @@ a { color: inherit; text-decoration: none; }
 .principle-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
 .principle-text { font-size: 14px; color: var(--gray-500); line-height: 1.65; }
 
-.l-footer { background: var(--navy-2,#243b58); color: rgba(255,255,255,.75); padding: 40px 24px 24px; }
-.l-footer-inner { max-width: 1120px; margin: 0 auto; display: flex; gap: 40px; flex-wrap: wrap; padding-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,.1); }
-.l-footer-copy { max-width: 1120px; margin: 0 auto; padding-top: 20px; font-size: 12px; color: rgba(255,255,255,.4); text-align: center; }
-.l-footer-logo { font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 8px; }
-.l-footer-logo span { color: var(--amber); }
-
 @media (max-width: 600px) { .l-nav-link { display: none; } .highlight-box { padding: 24px; } }
 </style>
 </head>
 <body>
+
+<!-- ====== ШАПКА ====== -->
 <header class="l-header">
   <div class="l-header-inner">
     <a href="/" class="l-logo">АНТИ<span>Нарко</span>логия</a>
     <nav class="l-nav">
-      <a href="/about.html" class="l-nav-link">О проекте</a>
+      <a href="/about.html" class="l-nav-link active">О проекте</a>
       <a href="/consultants.html" class="l-nav-link">Специалисты</a>
       <a href="/how-it-works.html" class="l-nav-link">Как работает</a>
-      <a href="/auth.html" class="l-nav-btn">Записаться →</a>
+      <a href="/auth.html" class="l-nav-link">Войти</a>
+      <a href="/book.html" class="l-nav-btn">Записаться →</a>
     </nav>
   </div>
 </header>
@@ -198,34 +217,44 @@ a { color: inherit; text-decoration: none; }
   </div>
 </section>
 
-<section class="l-section" style="text-align:center;background:var(--navy);padding:64px 24px">
+<section style="text-align:center;background:var(--navy);padding:64px 24px">
   <h2 style="font-size:clamp(22px,3.5vw,34px);font-weight:800;color:#fff;margin-bottom:14px">Готовы начать?</h2>
   <p style="font-size:16px;color:rgba(255,255,255,.7);margin-bottom:32px">Регистрация — меньше минуты. Можно анонимно.</p>
-  <a href="/auth.html" style="display:inline-flex;align-items:center;gap:8px;background:var(--amber);color:#fff;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:700">Записаться на совет →</a>
+  <a href="/book.html" style="display:inline-flex;align-items:center;gap:8px;background:var(--amber);color:#fff;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:700">Записаться на совет →</a>
 </section>
 
+<!-- ====== ПОДВАЛ ====== -->
 <footer class="l-footer">
   <div class="l-footer-inner">
     <div>
       <div class="l-footer-logo">АНТИ<span>Нарко</span>логия</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.5)">Не является медицинской организацией.</div>
+      <div class="l-footer-desc">
+        Независимый информационно-консультационный проект.<br>
+        Не является медицинской организацией.
+      </div>
     </div>
-    <div style="display:flex;gap:40px;flex-wrap:wrap">
-      <div>
-        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.4);margin-bottom:12px">Страницы</div>
-        <a href="/" style="display:block;font-size:14px;color:rgba(255,255,255,.7);padding:4px 0">Главная</a>
-        <a href="/consultants.html" style="display:block;font-size:14px;color:rgba(255,255,255,.7);padding:4px 0">Специалисты</a>
-        <a href="/how-it-works.html" style="display:block;font-size:14px;color:rgba(255,255,255,.7);padding:4px 0">Как работает</a>
-      </div>
-      <div>
-        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.4);margin-bottom:12px">Документы</div>
-        <a href="/offer.html" style="display:block;font-size:14px;color:rgba(255,255,255,.7);padding:4px 0">Договор-оферта</a>
-        <a href="/privacy.html" style="display:block;font-size:14px;color:rgba(255,255,255,.7);padding:4px 0">Политика конфиденциальности</a>
-        <a href="/terms.html" style="display:block;font-size:14px;color:rgba(255,255,255,.7);padding:4px 0">Правила использования</a>
-      </div>
+    <div class="l-footer-col">
+      <h4>Проект</h4>
+      <a href="/about.html">О нас и миссия</a>
+      <a href="/consultants.html">Специалисты</a>
+      <a href="/how-it-works.html">Как работает</a>
+    </div>
+    <div class="l-footer-col">
+      <h4>Аккаунт</h4>
+      <a href="/auth.html">Войти</a>
+      <a href="/auth.html">Зарегистрироваться</a>
+      <a href="/auth.html?role=consultant">Вход для специалиста</a>
+    </div>
+    <div class="l-footer-col">
+      <h4>Документы</h4>
+      <a href="/offer.html">Договор-оферта</a>
+      <a href="/privacy.html">Политика конфиденциальности</a>
+      <a href="/terms.html">Правила использования</a>
     </div>
   </div>
-  <div class="l-footer-copy">© 2024–2026 АНТИНаркология. Информационно-консультационные услуги — не медицинская деятельность.</div>
+  <div class="l-footer-copy">
+    © 2024–2026 АНТИНаркология. Информационно-консультационные услуги — не медицинская деятельность.
+  </div>
 </footer>
 </body>
 </html>
