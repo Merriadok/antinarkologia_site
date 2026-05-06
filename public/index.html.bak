@@ -9,6 +9,7 @@
 <style>
 /* ============================================================
    Лендинг — стили
+   Цветовая гамма: сдержанная синяя + белая, без пёстрости
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -77,7 +78,6 @@ button { font-family: inherit; }
   white-space: nowrap;
 }
 .l-nav-link:hover { color: var(--navy); background: var(--sky-2); }
-.l-nav-link.active { color: var(--navy); font-weight: 700; background: var(--sky-2); }
 
 .l-nav-btn {
   display: inline-flex; align-items: center; gap: 6px;
@@ -85,7 +85,6 @@ button { font-family: inherit; }
   padding: 8px 18px; border-radius: var(--r);
   font-size: 14px; font-weight: 600; margin-left: 8px;
   transition: background .15s;
-  white-space: nowrap;
 }
 .l-nav-btn:hover { background: var(--navy-2); }
 
@@ -179,57 +178,11 @@ button { font-family: inherit; }
   font-size: 26px; font-weight: 800; color: #fff; line-height: 1;
 }
 
-/* ---- Виджеты ---- */
-.l-widgets-section {
-  padding: 64px 24px;
-  background: var(--gray-50);
-}
-.l-widgets-inner {
-  max-width: 1120px; margin: 0 auto;
-}
-.l-widgets-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-.l-widget {
-  background: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--r-lg);
-  padding: 32px 28px;
-  display: flex; flex-direction: column;
-  box-shadow: var(--sh-sm);
-  transition: box-shadow .2s, transform .2s;
-}
-.l-widget:hover {
-  box-shadow: var(--sh-lg); transform: translateY(-2px);
-}
-.l-widget-icon {
-  font-size: 36px; margin-bottom: 18px; line-height: 1;
-}
-.l-widget-title {
-  font-size: 18px; font-weight: 800; color: var(--navy);
-  margin-bottom: 10px; line-height: 1.3;
-}
-.l-widget-text {
-  font-size: 14px; color: var(--gray-500); line-height: 1.7;
-  flex: 1; margin-bottom: 24px;
-}
-.l-widget-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: var(--sky-2); color: var(--navy);
-  border: 1.5px solid var(--sky);
-  padding: 9px 18px; border-radius: var(--r);
-  font-size: 14px; font-weight: 600;
-  align-self: flex-start;
-  transition: background .15s, border-color .15s;
-}
-.l-widget-btn:hover { background: var(--sky); border-color: var(--blue-lt); }
-.l-widget-btn svg { width: 13px; height: 13px; }
-
-/* ---- FAQ ---- */
+/* ---- Секции ---- */
 .l-section { padding: 72px 24px; }
 .l-section-alt { background: var(--gray-50); }
+.l-section-navy { background: var(--navy); color: #fff; }
+
 .l-inner { max-width: 1120px; margin: 0 auto; }
 
 .l-section-badge {
@@ -244,7 +197,141 @@ button { font-family: inherit; }
   font-weight: 800; line-height: 1.2; letter-spacing: -.02em;
   margin-bottom: 12px;
 }
+.l-section-sub {
+  font-size: 16px; color: var(--gray-500); line-height: 1.65;
+  max-width: 580px; margin-bottom: 48px;
+}
 
+/* ---- Тизер-карточки ---- */
+.l-teaser-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+.l-teaser-card {
+  background: var(--white); border: 1px solid var(--gray-200);
+  border-radius: var(--r-lg); padding: 28px;
+  display: flex; flex-direction: column;
+  transition: box-shadow .2s, transform .2s;
+  box-shadow: var(--sh-sm);
+}
+.l-teaser-card:hover {
+  box-shadow: var(--sh-lg); transform: translateY(-3px);
+}
+.l-teaser-icon { font-size: 32px; margin-bottom: 16px; }
+.l-teaser-title { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+.l-teaser-text { font-size: 14px; color: var(--gray-500); line-height: 1.65; flex: 1; }
+.l-teaser-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 20px; font-size: 14px; font-weight: 600;
+  color: var(--blue); transition: gap .15s;
+}
+.l-teaser-link:hover { gap: 10px; }
+.l-teaser-link svg { width: 14px; height: 14px; }
+
+/* ---- Блок "Почему совет" ---- */
+.l-why-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+  border: 1px solid var(--gray-200); border-radius: var(--r-lg);
+  overflow: hidden; box-shadow: var(--sh);
+}
+.l-why-left {
+  padding: 44px 48px;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.l-why-right {
+  background: var(--navy); color: #fff;
+  padding: 44px 48px;
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+}
+.l-why-title { font-size: clamp(20px, 2.5vw, 28px); font-weight: 800; margin-bottom: 16px; }
+.l-why-text { font-size: 15px; color: var(--gray-500); line-height: 1.72; margin-bottom: 24px; }
+.l-why-price-label { font-size: 13px; color: rgba(255,255,255,.6); margin-bottom: 6px; }
+.l-why-price { font-size: 52px; font-weight: 900; color: var(--amber); line-height: 1; margin-bottom: 4px; }
+.l-why-price-sub { font-size: 14px; color: rgba(255,255,255,.6); margin-bottom: 28px; }
+.l-why-includes { list-style: none; margin-bottom: 32px; }
+.l-why-includes li {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 14px; color: rgba(255,255,255,.8); padding: 5px 0;
+}
+.l-why-includes li::before { content: '✓'; color: var(--amber); font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+.l-why-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--amber); color: #fff;
+  padding: 12px 24px; border-radius: var(--r);
+  font-size: 15px; font-weight: 700;
+  transition: filter .15s;
+}
+.l-why-btn:hover { filter: brightness(1.08); }
+.l-why-more {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 12px; font-size: 14px; color: rgba(255,255,255,.65);
+  transition: color .15s;
+}
+.l-why-more:hover { color: #fff; }
+
+/* ---- Шаги ---- */
+.l-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
+.l-steps::before {
+  content: '';
+  position: absolute; top: 28px; left: calc(12.5% + 20px); right: calc(12.5% + 20px);
+  height: 2px; background: var(--gray-200);
+  z-index: 0;
+}
+.l-step { text-align: center; padding: 0 16px; position: relative; z-index: 1; }
+.l-step-num {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--white); border: 2px solid var(--gray-200);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px; font-size: 20px; font-weight: 800; color: var(--navy);
+  box-shadow: var(--sh-sm);
+}
+.l-step-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.l-step-text { font-size: 13px; color: var(--gray-500); line-height: 1.6; }
+
+/* ---- Консультанты ---- */
+.l-spec-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+}
+.l-spec-card {
+  background: var(--white); border: 1px solid var(--gray-200);
+  border-radius: var(--r-lg); overflow: hidden;
+  box-shadow: var(--sh-sm);
+  display: flex; flex-direction: column;
+}
+.l-spec-photo { width: 100%; aspect-ratio: 4/3; object-fit: cover; object-position: top; background: var(--gray-100); }
+.l-spec-body { padding: 24px; flex: 1; display: flex; flex-direction: column; }
+.l-spec-name { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+.l-spec-title { font-size: 13px; color: var(--blue); font-weight: 600; margin-bottom: 14px; }
+.l-spec-bio { font-size: 14px; color: var(--gray-500); line-height: 1.65; flex: 1; }
+.l-spec-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 18px; font-size: 14px; font-weight: 600;
+  color: var(--navy); transition: gap .15s;
+}
+.l-spec-link:hover { gap: 10px; }
+
+/* Плейсхолдер "Скоро" */
+.l-spec-soon {
+  background: var(--gray-100); border: 2px dashed var(--gray-300);
+  border-radius: var(--r-lg); overflow: hidden;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 48px 24px; text-align: center;
+  min-height: 300px;
+}
+.l-spec-soon-icon { font-size: 40px; margin-bottom: 16px; opacity: .5; }
+.l-spec-soon-badge {
+  display: inline-block;
+  background: var(--amber-lt); color: var(--amber);
+  border-radius: 20px; padding: 4px 16px;
+  font-size: 12px; font-weight: 700; letter-spacing: .05em;
+  margin-bottom: 16px;
+}
+.l-spec-soon-name { font-size: 17px; font-weight: 700; color: var(--gray-700); margin-bottom: 6px; }
+.l-spec-soon-text { font-size: 13px; color: var(--gray-400); }
+
+/* ---- FAQ ---- */
 .l-faq-wrap { display: grid; grid-template-columns: 280px 1fr; gap: 60px; align-items: start; }
 .l-faq-list { display: flex; flex-direction: column; gap: 0; }
 .l-faq-item { border-bottom: 1px solid var(--gray-200); }
@@ -304,15 +391,17 @@ button { font-family: inherit; }
 
 /* ---- Адаптив ---- */
 @media (max-width: 900px) {
-  .l-widgets-grid { grid-template-columns: 1fr; }
+  .l-why-grid { grid-template-columns: 1fr; }
   .l-faq-wrap { grid-template-columns: 1fr; gap: 32px; }
+  .l-steps { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .l-steps::before { display: none; }
   .l-footer-inner { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 600px) {
   .l-nav-link { display: none; }
+  .l-steps { grid-template-columns: 1fr; }
+  .l-why-left, .l-why-right { padding: 32px 28px; }
   .l-footer-inner { grid-template-columns: 1fr; }
-  .l-widgets-section { padding: 48px 16px; }
-  .l-widget { padding: 24px 20px; }
 }
 </style>
 </head>
@@ -327,7 +416,7 @@ button { font-family: inherit; }
       <a href="/consultants.html" class="l-nav-link">Специалисты</a>
       <a href="/how-it-works.html" class="l-nav-link">Как работает</a>
       <a href="/auth.html" class="l-nav-link">Войти</a>
-      <a href="/book.html" class="l-nav-btn">Записаться →</a>
+      <a href="/auth.html" class="l-nav-btn">Записаться →</a>
     </nav>
   </div>
 </header>
@@ -351,8 +440,8 @@ button { font-family: inherit; }
     </p>
 
     <div class="l-hero-actions au au-3">
-      <a href="/book.html" class="btn-pri">Записаться на совет</a>
-      <a href="/about.html" class="btn-sec">Узнать больше →</a>
+      <a href="/auth.html" class="btn-pri">Записаться на совет</a>
+      <a href="/how-it-works.html" class="btn-sec">Узнать больше →</a>
     </div>
 
     <div class="l-trust-strip au au-3">
@@ -377,51 +466,196 @@ button { font-family: inherit; }
 </section>
 
 
-<!-- ====== ВИДЖЕТЫ ====== -->
-<section class="l-widgets-section">
-  <div class="l-widgets-inner">
-    <div class="l-widgets-grid">
+<!-- ====== ТИЗЕРЫ ====== -->
+<section class="l-section">
+  <div class="l-inner">
+    <div class="l-section-badge">Что мы предлагаем</div>
+    <h2 class="l-section-title">Другой формат помощи</h2>
+    <p class="l-section-sub">Официальная наркология пугает учётом и бюрократией. Мы предлагаем прямой разговор — конкретный, честный, без воды.</p>
+    <a href="/about.html" class="l-teaser-link" style="font-size:15px;margin-bottom:32px;display:inline-flex">
+      Узнать больше о нашем подходе
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+    </a>
 
-      <!-- Виджет 1: Другой формат помощи -->
-      <div class="l-widget">
-        <div class="l-widget-icon">🤝</div>
-        <div class="l-widget-title">Другой формат помощи</div>
-        <div class="l-widget-text">
-          Без учётов, направлений и бюрократии. Прямой честный разговор со специалистом —
-          анонимно, удобным способом, в удобное время.
+    <div class="l-teaser-grid">
+
+      <div class="l-teaser-card">
+        <div class="l-teaser-icon">🔒</div>
+        <div class="l-teaser-title">Полная анонимность</div>
+        <div class="l-teaser-text">
+          Можно зарегистрироваться вообще без имени и почты — только логин и пароль.
+          Никаких паспортов, направлений и медицинских карточек.
         </div>
-        <a href="/about.html" class="l-widget-btn">
+        <a href="/about.html#privacy" class="l-teaser-link">
           Узнать больше
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
         </a>
       </div>
 
-      <!-- Виджет 2: Как мы работаем -->
-      <div class="l-widget">
-        <div class="l-widget-icon">🗂️</div>
-        <div class="l-widget-title">Как мы работаем</div>
-        <div class="l-widget-text">
-          Регистрация — выбор времени — оплата — совет. Четыре простых шага
-          от первого вопроса до готового плана действий.
+      <div class="l-teaser-card">
+        <div class="l-teaser-icon">🗺️</div>
+        <div class="l-teaser-title">Маршрутизация, а не диагноз</div>
+        <div class="l-teaser-text">
+          Куда идти, к кому обращаться, как не попасть к мошенникам —
+          чёткий план действий вместо расплывчатых рекомендаций.
         </div>
-        <a href="/how-it-works.html" class="l-widget-btn">
+        <a href="/about.html#mission" class="l-teaser-link">
           Узнать больше
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
         </a>
       </div>
 
-      <!-- Виджет 3: Команда -->
-      <div class="l-widget">
-        <div class="l-widget-icon">👨‍⚕️</div>
-        <div class="l-widget-title">Команда</div>
-        <div class="l-widget-text">
-          Андрей Мандыбура — нарколог-психиатр с 1987 года. Международный опыт,
-          доказательный подход, никакого давления и осуждения.
+      <div class="l-teaser-card">
+        <div class="l-teaser-icon">🤝</div>
+        <div class="l-teaser-title">Сопровождение на всём пути</div>
+        <div class="l-teaser-text">
+          Если нужна не разовая беседа, а поддержка на месяцы —
+          есть формат сопровождения: регулярный контакт, корректировка курса.
         </div>
-        <a href="/consultants.html" class="l-widget-btn">
+        <a href="/about.html#support" class="l-teaser-link">
           Узнать больше
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
         </a>
+      </div>
+
+      <div class="l-teaser-card">
+        <div class="l-teaser-icon">🔬</div>
+        <div class="l-teaser-title">Только доказательный подход</div>
+        <div class="l-teaser-text">
+          Без мифов и «магических» методик. Международный опыт:
+          США, Канада, Австрия, программы ООН по противодействию наркотикам.
+        </div>
+        <a href="/about.html#approach" class="l-teaser-link">
+          Узнать больше
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ====== ПОЧЕМУ ИМЕННО СОВЕТ ====== -->
+<section class="l-section l-section-alt">
+  <div class="l-inner">
+    <div class="l-section-badge">Формат работы</div>
+    <h2 class="l-section-title" style="margin-bottom:40px">Почему «совет», а не «консультация»?</h2>
+
+    <div class="l-why-grid">
+      <div class="l-why-left">
+        <p class="l-why-text">
+          «Консультация» — это что-то официальное, с лицензией и актами.
+          «Совет» — разговор двух людей, один из которых знает намного больше.
+          Именно так работают лучшие врачи с друзьями.
+        </p>
+        <p class="l-why-text">
+          За 15–60 минут вы получаете конкретный ответ на конкретный вопрос:
+          что происходит, насколько это серьёзно, что делать дальше.
+          Никаких домашних заданий, никаких «приходите через месяц».
+        </p>
+        <a href="/about.html#why-advice" class="l-teaser-link" style="font-size:15px">
+          Подробнее о формате
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+        </a>
+      </div>
+      <div class="l-why-right">
+        <div class="l-why-price-label">Первичный совет</div>
+        <div class="l-why-price" id="advice-price">1 000 ₽</div>
+        <div class="l-why-price-sub">фиксированная цена, без скрытых доплат</div>
+        <ul class="l-why-includes">
+          <li>15–60 минут живого разговора</li>
+          <li>Конкретный план действий</li>
+          <li>Рекомендации по дальнейшим шагам</li>
+          <li>Возможность задать все вопросы</li>
+        </ul>
+        <a href="/auth.html" class="l-why-btn">Записаться →</a>
+        <a href="/about.html#support" class="l-why-more">
+          О сопровождении →
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====== КАК РАБОТАЕТ ====== -->
+<section class="l-section">
+  <div class="l-inner">
+    <div class="l-section-badge">Процесс</div>
+    <h2 class="l-section-title">4 шага до ответа</h2>
+    <p class="l-section-sub">От регистрации до готового плана — без бюрократии.</p>
+    <a href="/how-it-works.html" class="l-teaser-link" style="font-size:15px;margin-bottom:32px;display:inline-flex">
+      Подробнее о процессе
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+    </a>
+
+    <div class="l-steps">
+      <div class="l-step">
+        <div class="l-step-num">1</div>
+        <div class="l-step-title">Регистрируетесь</div>
+        <div class="l-step-text">Анонимно — только логин и пароль. Никаких персональных данных.</div>
+      </div>
+      <div class="l-step">
+        <div class="l-step-num">2</div>
+        <div class="l-step-title">Выбираете время</div>
+        <div class="l-step-text">Смотрите доступные слоты и бронируете удобное время.</div>
+      </div>
+      <div class="l-step">
+        <div class="l-step-num">3</div>
+        <div class="l-step-title">Оплачиваете</div>
+        <div class="l-step-text">1 000 ₽ онлайн. После оплаты получаете ссылку на созвон.</div>
+      </div>
+      <div class="l-step">
+        <div class="l-step-num">4</div>
+        <div class="l-step-title">Получаете совет</div>
+        <div class="l-step-text">Живой разговор со специалистом. Конкретный план на выходе.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====== КОНСУЛЬТАНТЫ ====== -->
+<section class="l-section l-section-alt">
+  <div class="l-inner">
+    <div class="l-section-badge">Команда</div>
+    <h2 class="l-section-title">Консультанты</h2>
+    <p class="l-section-sub">Специалисты с реальным клиническим опытом — не теоретики.</p>
+    <a href="/consultants.html" class="l-teaser-link" style="font-size:15px;margin-bottom:32px;display:inline-flex">
+      Все специалисты →
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+    </a>
+
+    <div class="l-spec-grid">
+
+      <!-- Мандыбура -->
+      <div class="l-spec-card">
+        <img class="l-spec-photo" src="/static/img/mandybura.jpg" alt="Андрей Мандыбура" loading="lazy">
+        <div class="l-spec-body">
+          <div class="l-spec-name">Андрей Мандыбура</div>
+          <div class="l-spec-title">Нарколог-психиатр, опыт с 1987 года</div>
+          <div class="l-spec-bio">
+            С 1987 года в наркологии. Защищает интересы пациентов в системе, где принято
+            давить на страх. Международный опыт: США, Канада, Австрия.
+            Убеждён, что лучший способ помочь — говорить правду.
+          </div>
+          <a href="/consultants.html#mandybura" class="l-spec-link">
+            Узнать больше
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Носовцов — плейсхолдер -->
+      <div class="l-spec-soon">
+        <div class="l-spec-soon-icon">👤</div>
+        <div class="l-spec-soon-badge">СКОРО</div>
+        <div class="l-spec-soon-name">Андрей Носовцов</div>
+        <div class="l-spec-soon-text">
+          Медицинский психолог, специалист по зависимостям.<br>
+          Присоединяется к проекту в ближайшее время.
+        </div>
       </div>
 
     </div>
@@ -439,7 +673,7 @@ button { font-family: inherit; }
         <p style="font-size:15px;color:var(--gray-500);line-height:1.65;margin-bottom:28px">
           Если не нашли ответ — просто запишитесь, разберёмся вместе.
         </p>
-        <a href="/book.html" class="btn-pri">Записаться</a>
+        <a href="/auth.html" class="btn-pri">Записаться</a>
       </div>
 
       <div class="l-faq-list">
@@ -545,6 +779,21 @@ function faqToggle(btn) {
   document.querySelectorAll('.l-faq-item.open').forEach(el => el.classList.remove('open'))
   if (!isOpen) item.classList.add('open')
 }
+
+// Загружаем актуальную цену совета из API
+async function loadAdvicePrice() {
+  try {
+    const resp = await fetch('/api/tariffs')
+    if (!resp.ok) return
+    const { tariffs } = await resp.json()
+    const advice = tariffs?.find(t => t.code === 'advice' || t.is_advice)
+    if (advice && advice.price_rub) {
+      document.getElementById('advice-price').textContent =
+        new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(advice.price_rub)
+    }
+  } catch {}
+}
+loadAdvicePrice()
 </script>
 </body>
 </html>
