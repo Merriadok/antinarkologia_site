@@ -9,11 +9,20 @@ export type Bindings = {
   YUKASSA_SHOP_ID: string
   YUKASSA_SECRET_KEY: string
   EMAIL_FROM: string
-  EMAIL_SMTP_URL: string   // smtp://user:pass@host:port
+  EMAIL_SMTP_URL: string          // smtp://user:pass@host:port
   CONSULTANT_EMAIL: string
   CONSULTANT_TELEGRAM_BOT_TOKEN: string
   CONSULTANT_TELEGRAM_CHAT_ID: string
-  BASE_URL: string         // https://antinarkologia.ru
+  BASE_URL: string                // https://antinarkologia.ru
+  // Яндекс TeleМост (OAuth-токен сотрудника Яндекс 360)
+  TELEMOST_API_KEY: string        // OAuth токен из Яндекс ID → Яндекс 360
+  // Telegram-бот для чата и уведомлений
+  TELEGRAM_BOT_TOKEN: string      // от @BotFather
+  TELEGRAM_BOT_SECRET: string     // секрет для webhook-валидации
+  // Push VAPID ключи (Web Push)
+  VAPID_PUBLIC_KEY: string
+  VAPID_PRIVATE_KEY: string
+  VAPID_SUBJECT: string           // mailto:admin@antinarkologia.ru
 }
 
 export type Variables = {

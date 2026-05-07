@@ -24,11 +24,114 @@ async function init() {
   const params = new URLSearchParams(location.search)
   if (params.get('booking') && params.get('status')) {
     await handlePaymentReturn(params.get('booking'), params.get('status'))
-    // Чистим URL
     history.replaceState(null, '', location.pathname)
   }
 
+  // Service Worker + Push-уведомления
+  initServiceWorker()
+
   navigate('bookings')
+}
+
+// ---- Service Worker ----
+
+async function initServiceWorker() {
+  if (!('serviceWorker' in navigator)) return
+  try {
+    const reg = await navigator.serviceWorker.register('/static/sw.js', { scope: '/' })
+    // Планируем напоминания за 10 минут — проверяем каждые 5 мин
+    setInterval(() => checkUpcomingReminders(), 5 * 60 * 1000)
+    // И сразу при открытии
+    checkUpcomingReminders()
+    // Настраиваем Push-подписку
+    await setupPushSubscription(reg)
+  } catch (err) {
+    console.warn('SW registration failed:', err)
+  }
+}
+
+async function setupPushSubscription(registration) {
+  try {
+    // Проверяем VAPID-ключ
+    const { key, enabled } = await API.get('/push/vapid-key')
+    if (!enabled) return  // Push не настроен на сервере — молча пропускаем
+
+    // Проверяем уже существующую подписку
+    let sub = await registration.pushManager.getSubscription()
+    if (!sub) {
+      // Запрашиваем разрешение
+      const perm = await Notification.requestPermission()
+      if (perm !== 'granted') return
+
+      // Создаём подписку
+      sub = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(key),
+      })
+    }
+
+    // Отправляем на сервер
+    const json = sub.toJSON()
+    await API.post('/push/subscribe', {
+      endpoint: json.endpoint,
+      p256dh:   json.keys?.p256dh,
+      auth:     json.keys?.auth,
+      userAgent: navigator.userAgent,
+    })
+  } catch (err) {
+    console.warn('Push setup error:', err)
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding   = '='.repeat((4 - base64String.length % 4) % 4)
+  const base64    = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData   = window.atob(base64)
+  const outputArr = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; ++i) outputArr[i] = rawData.charCodeAt(i)
+  return outputArr
+}
+
+// ---- Локальные напоминания (10 минут до встречи) ----
+// Работают пока вкладка открыта, не требуют VAPID
+
+async function checkUpcomingReminders() {
+  if (Notification.permission !== 'granted') return
+  try {
+    const { bookings } = await API.get('/bookings/my')
+    const now = Date.now()
+    const TEN_MIN = 10 * 60 * 1000
+    const SHOWN_KEY = 'reminded_bookings'
+    const shown = JSON.parse(sessionStorage.getItem(SHOWN_KEY) || '{}')
+
+    bookings
+      .filter(b => b.status === 'paid' && b.slot_starts_at)
+      .forEach(b => {
+        const startsAt = new Date(b.slot_starts_at).getTime()
+        const diff = startsAt - now
+        // Напоминаем в окне от 15 до 9 минут до встречи
+        if (diff > 0 && diff <= 15 * 60 * 1000 && diff >= 9 * 60 * 1000 && !shown[b.id]) {
+          shown[b.id] = true
+          sessionStorage.setItem(SHOWN_KEY, JSON.stringify(shown))
+          showLocalNotification(
+            '⏰ Встреча через 10 минут!',
+            `${b.tariff_name || 'Совет'} — ${Fmt.date(b.slot_starts_at)}`,
+            '/lk.html'
+          )
+        }
+      })
+  } catch (_) {}
+}
+
+function showLocalNotification(title, body, url) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return
+  const notif = new Notification(title, {
+    body,
+    icon: '/static/favicon.svg',
+    tag:  'antinarco-reminder',
+    requireInteraction: true,
+  })
+  notif.onclick = () => { window.focus(); window.location.href = url; notif.close() }
 }
 
 async function navigate(page) {
@@ -129,14 +232,27 @@ function renderBookingCard(b, isUpcoming) {
   let contactBlock = ''
   if (b.status === 'paid' || b.status === 'in_progress') {
     let contactLinks = []
-    if (b.meeting_format === 'telemost' && b.meeting_link) {
-      contactLinks.push(`<a href="${b.meeting_link}" target="_blank" class="btn btn-accent btn-sm">📹 Ссылка на TeleМост</a>`)
-    } else if ((b.meeting_format === 'telegram' || b.meeting_format === 'max') && b.consultant_telegram) {
-      contactLinks.push(`<a href="https://t.me/${b.consultant_telegram}" target="_blank" class="btn btn-outline btn-sm">💬 Написать консультанту</a>`)
+    if (b.meeting_format === 'telemost') {
+      if (b.meeting_link) {
+        contactLinks.push(`<a href="${b.meeting_link}" target="_blank" class="btn btn-accent btn-sm">📹 Войти в TeleМост</a>`)
+      } else {
+        // Ссылка ещё не создана — показываем информационный плейсхолдер
+        contactLinks.push(`
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;
+                background:#f0f6ff;border-radius:6px;font-size:13px;color:var(--c-muted);border:1px solid var(--c-border)">
+            📹 Ссылка TeleМост — будет добавлена консультантом
+          </span>`)
+      }
+    } else if (b.meeting_format === 'telegram' && b.consultant_telegram) {
+      contactLinks.push(`<a href="https://t.me/${b.consultant_telegram}" target="_blank" class="btn btn-outline btn-sm">✈️ Telegram консультанта</a>`)
+    } else if (b.meeting_format === 'max') {
+      contactLinks.push(`<span style="font-size:13px;color:var(--c-muted);padding:6px 0;display:inline-block">💙 Консультант напишет в Макс в согласованное время</span>`)
+    } else if (b.meeting_format === 'phone') {
+      contactLinks.push(`<span style="font-size:13px;color:var(--c-muted);padding:6px 0;display:inline-block">📞 Консультант позвонит в согласованное время</span>`)
     }
-    if (contactLinks.length) {
-      contactBlock = `<div style="margin:10px 0 0">${contactLinks.join('')}</div>`
-    }
+    // Кнопка чата (для всех оплаченных записей)
+    contactLinks.push(`<button class="btn btn-outline btn-sm btn-open-chat" data-id="${b.id}" onclick="openChat(${b.id})">💬 Чат с консультантом</button>`)
+    contactBlock = `<div style="margin:10px 0 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center">${contactLinks.join('')}</div>`
   }
 
   // Действия
@@ -709,9 +825,43 @@ async function renderProfile() {
       </div>
     </div>
 
+    <!-- Telegram-бот -->
+    <div class="card" style="max-width:520px;margin-top:16px">
+      <div class="card-header"><div class="card-title">📱 Telegram-бот уведомлений</div></div>
+      <div class="card-body">
+        ${user.telegram_bot_chat_id ? `
+          <div class="alert alert-info" style="margin-bottom:12px">
+            ✅ Telegram подключён — вы получаете уведомления и можете писать боту.
+          </div>
+          <a href="https://t.me/antinarkologia_bot" target="_blank" class="btn btn-outline btn-sm">
+            Открыть бот в Telegram
+          </a>
+        ` : `
+          <p style="font-size:14px;color:var(--c-muted);margin-bottom:14px;line-height:1.6">
+            Подключите Telegram, чтобы получать уведомления о встречах, ответах консультанта
+            и напоминания прямо в мессенджер.
+          </p>
+          <button class="btn btn-primary btn-sm" onclick="connectTelegram(${user.id})">
+            ✈️ Подключить Telegram
+          </button>
+          <div class="form-hint" style="margin-top:8px">
+            Вы перейдёте к боту с персональным кодом — нажмите «Старт»
+          </div>
+        `}
+      </div>
+    </div>
+
     ${user.is_anonymous ? buildAnonCredentialsCard(user.login) : ''}
   `
 }
+
+// Кнопка «Подключить Telegram» — открывает бота с кодом подтверждения
+function connectTelegram(userId) {
+  const code = btoa(String(userId))
+  const botUrl = `https://t.me/antinarkologia_bot?start=${code}`
+  window.open(botUrl, '_blank')
+}
+window.connectTelegram = connectTelegram
 
 // Строим карточку «Данные для входа» для анонима
 function buildAnonCredentialsCard(login) {
@@ -832,6 +982,162 @@ async function saveProfile() {
   } catch (err) {
     showAlert(alertBox, 'error', err.message)
   }
+}
+
+// ============================================================
+// Чат клиента с консультантом
+// ============================================================
+
+let chatPollTimer = null
+
+async function openChat(bookingId) {
+  const modal = document.getElementById('modal-root')
+  modal.innerHTML = `
+    <div class="modal-overlay" onclick="closeChat()">
+      <div class="modal" onclick="event.stopPropagation()"
+           style="max-width:520px;height:80vh;display:flex;flex-direction:column">
+
+        <div class="modal-header">
+          <div class="modal-title">💬 Чат с консультантом — запись #${bookingId}</div>
+          <button class="modal-close" onclick="closeChat()">✕</button>
+        </div>
+
+        <!-- Сообщения -->
+        <div id="chat-messages" style="
+          flex:1;overflow-y:auto;padding:16px;
+          display:flex;flex-direction:column;gap:10px;
+          background:#f8f9fa;
+        ">
+          <div class="loading-overlay"><div class="spinner"></div> Загрузка...</div>
+        </div>
+
+        <!-- Ввод -->
+        <div style="padding:12px 16px;border-top:1px solid var(--c-border);background:#fff">
+          <div style="display:flex;gap:8px">
+            <textarea id="chat-input" class="form-textarea"
+              rows="2" style="margin:0;flex:1;resize:none;font-size:14px"
+              placeholder="Напишите сообщение..."
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage(${bookingId})}">
+            </textarea>
+            <button class="btn btn-primary" style="align-self:flex-end;white-space:nowrap"
+                    onclick="sendChatMessage(${bookingId})">
+              Отправить
+            </button>
+          </div>
+          <div style="font-size:11px;color:var(--c-muted);margin-top:4px">
+            Enter — отправить · Shift+Enter — новая строка
+          </div>
+        </div>
+
+      </div>
+    </div>
+  `
+
+  await loadChatMessages(bookingId)
+
+  // Помечаем прочитанными
+  try { await API.post(`/chat/${bookingId}/read`) } catch(_) {}
+
+  // Автообновление каждые 8 секунд
+  chatPollTimer = setInterval(async () => {
+    await loadChatMessages(bookingId, true)
+  }, 8000)
+}
+window.openChat = openChat
+
+async function loadChatMessages(bookingId, silent = false) {
+  const container = document.getElementById('chat-messages')
+  if (!container) return
+
+  try {
+    const { messages } = await API.get(`/chat/${bookingId}`)
+    const wasAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50
+
+    if (messages.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center;color:var(--c-muted);padding:40px 20px;font-size:14px">
+          Чат пока пуст.<br>Напишите консультанту — он ответит в рабочее время.
+        </div>
+      `
+      return
+    }
+
+    container.innerHTML = messages.map(m => {
+      const isMe = m.sender_type === 'user'
+      const time = new Date(m.created_at).toLocaleTimeString('ru-RU', {
+        hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow'
+      })
+      const date = new Date(m.created_at).toLocaleDateString('ru-RU', {
+        day: 'numeric', month: 'short', timeZone: 'Europe/Moscow'
+      })
+      return `
+        <div style="
+          display:flex;flex-direction:column;
+          align-items:${isMe ? 'flex-end' : 'flex-start'};
+          gap:2px
+        ">
+          <div style="
+            max-width:80%;padding:10px 14px;border-radius:${isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};
+            background:${isMe ? 'var(--c-primary)' : '#fff'};
+            color:${isMe ? '#fff' : 'var(--c-text)'};
+            font-size:14px;line-height:1.5;
+            box-shadow:0 1px 3px rgba(0,0,0,0.08);
+            white-space:pre-wrap;word-break:break-word;
+          ">${escHtml(m.body)}</div>
+          <div style="font-size:11px;color:var(--c-muted);padding:0 4px">
+            ${isMe ? 'Вы' : 'Консультант'} · ${date}, ${time} МСК
+          </div>
+        </div>
+      `
+    }).join('')
+
+    // Скролл вниз если были внизу
+    if (wasAtBottom || !silent) {
+      container.scrollTop = container.scrollHeight
+    }
+  } catch (err) {
+    if (!silent) {
+      container.innerHTML = `<div class="alert alert-error">${err.message}</div>`
+    }
+  }
+}
+
+async function sendChatMessage(bookingId) {
+  const input = document.getElementById('chat-input')
+  if (!input) return
+  const text = input.value.trim()
+  if (!text) return
+
+  input.value = ''
+  input.disabled = true
+
+  try {
+    await API.post(`/chat/${bookingId}`, { body: text })
+    await loadChatMessages(bookingId, true)
+  } catch (err) {
+    input.value = text  // вернуть текст при ошибке
+    toast(err.message, 'error')
+  } finally {
+    input.disabled = false
+    input.focus()
+    const container = document.getElementById('chat-messages')
+    if (container) container.scrollTop = container.scrollHeight
+  }
+}
+window.sendChatMessage = sendChatMessage
+
+function closeChat() {
+  if (chatPollTimer) { clearInterval(chatPollTimer); chatPollTimer = null }
+  document.getElementById('modal-root').innerHTML = ''
+}
+window.closeChat = closeChat
+
+function escHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 // ---- Старт ----

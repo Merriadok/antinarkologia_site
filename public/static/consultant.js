@@ -350,7 +350,7 @@ async function openBookingModal(bookingId) {
           <!-- Ссылка на встречу (TeleМост) -->
           <div class="form-group">
             <label class="form-label">🔗 Ссылка на встречу (TeleМост / другое)</label>
-            <div style="display:flex;gap:8px">
+            <div style="display:flex;gap:8px;margin-bottom:8px">
               <input class="form-input" id="modal-link" type="url"
                 placeholder="https://telemost.yandex.ru/..."
                 value="${booking.meeting_link || ''}">
@@ -358,7 +358,23 @@ async function openBookingModal(bookingId) {
                 Сохранить
               </button>
             </div>
+            ${booking.meeting_format === 'telemost' ? `
+              <button class="btn btn-outline btn-sm" onclick="autoCreateTelemost(${booking.id})"
+                      style="margin-bottom:6px">
+                ✨ Создать встречу TeleМост автоматически
+              </button>
+            ` : ''}
             <div class="form-hint">Клиент увидит ссылку в своём ЛК после оплаты</div>
+          </div>
+
+          <!-- Чат с клиентом -->
+          <div class="form-group">
+            <label class="form-label">💬 Чат с клиентом</label>
+            <button class="btn btn-outline btn-sm" onclick="openConsultantChat(${booking.id})"
+                    style="gap:6px">
+              Открыть чат
+            </button>
+            <div class="form-hint">Внутренний чат — виден только вам и клиенту</div>
           </div>
 
           <!-- Заметки консультанта -->
@@ -1020,6 +1036,193 @@ function mskToday() {
   const m = String(local.getMonth() + 1).padStart(2, '0')
   const d = String(local.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
+}
+
+// ============================================================
+// TeleМост — автосоздание встречи
+// ============================================================
+
+window.autoCreateTelemost = async (bookingId) => {
+  const btn = event.target
+  setLoading(btn, true, 'Создаём...')
+  try {
+    const resp = await API.post(`/telemost/create/${bookingId}`)
+    if (resp.ok && resp.link) {
+      const linkInput = document.getElementById('modal-link')
+      if (linkInput) linkInput.value = resp.link
+      if (resp.existing) {
+        toast('Ссылка уже была создана — загружена в поле', 'info')
+      } else {
+        toast('✓ Встреча TeleМост создана! Сохраните ссылку.', 'success')
+      }
+    } else if (resp.placeholder) {
+      toast(resp.message, 'warning', 8000)
+      window.open(resp.manual_url, '_blank')
+    } else {
+      toast(resp.error || 'Ошибка создания встречи', 'error')
+    }
+  } catch (err) {
+    toast(err.message, 'error')
+  } finally {
+    setLoading(btn, false)
+  }
+}
+
+// ============================================================
+// Чат консультанта с клиентом
+// ============================================================
+
+let consultantChatTimer = null
+
+window.openConsultantChat = async (bookingId) => {
+  // Закрываем основную модалку и открываем чат-модалку
+  closeModal()
+
+  const modal = document.getElementById('modal-root')
+  modal.innerHTML = `
+    <div class="modal-overlay" onclick="closeConsultantChat()">
+      <div class="modal" onclick="event.stopPropagation()"
+           style="max-width:520px;height:80vh;display:flex;flex-direction:column">
+
+        <div class="modal-header">
+          <div class="modal-title">💬 Чат с клиентом — запись #${bookingId}</div>
+          <button class="modal-close" onclick="closeConsultantChat()">✕</button>
+        </div>
+
+        <!-- Сообщения -->
+        <div id="cons-chat-messages" style="
+          flex:1;overflow-y:auto;padding:16px;
+          display:flex;flex-direction:column;gap:10px;
+          background:#f8f9fa;
+        ">
+          <div class="loading-overlay"><div class="spinner"></div> Загрузка...</div>
+        </div>
+
+        <!-- Ввод -->
+        <div style="padding:12px 16px;border-top:1px solid var(--c-border);background:#fff">
+          <div style="display:flex;gap:8px">
+            <textarea id="cons-chat-input" class="form-textarea"
+              rows="2" style="margin:0;flex:1;resize:none;font-size:14px"
+              placeholder="Напишите клиенту..."
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendConsultantMessage(${bookingId})}">
+            </textarea>
+            <button class="btn btn-primary" style="align-self:flex-end;white-space:nowrap"
+                    onclick="sendConsultantMessage(${bookingId})">
+              Отправить
+            </button>
+          </div>
+          <div style="font-size:11px;color:var(--c-muted);margin-top:4px">
+            Enter — отправить · Shift+Enter — новая строка
+          </div>
+        </div>
+
+      </div>
+    </div>
+  `
+
+  await loadConsultantChatMessages(bookingId)
+  try { await API.post(`/chat/${bookingId}/read`) } catch(_) {}
+
+  consultantChatTimer = setInterval(async () => {
+    await loadConsultantChatMessages(bookingId, true)
+  }, 6000)
+}
+window.closeConsultantChat = () => {
+  if (consultantChatTimer) { clearInterval(consultantChatTimer); consultantChatTimer = null }
+  document.getElementById('modal-root').innerHTML = ''
+}
+
+async function loadConsultantChatMessages(bookingId, silent = false) {
+  const container = document.getElementById('cons-chat-messages')
+  if (!container) return
+
+  try {
+    const { messages, unread } = await API.get(`/chat/${bookingId}`)
+    const wasAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50
+
+    if (messages.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center;color:var(--c-muted);padding:40px 20px;font-size:14px">
+          Сообщений пока нет.<br>Клиент сможет написать после оплаты.
+        </div>
+      `
+      return
+    }
+
+    container.innerHTML = messages.map(m => {
+      const isMe = m.sender_type === 'consultant'
+      const time = new Date(m.created_at).toLocaleTimeString('ru-RU', {
+        hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow'
+      })
+      const date = new Date(m.created_at).toLocaleDateString('ru-RU', {
+        day: 'numeric', month: 'short', timeZone: 'Europe/Moscow'
+      })
+      const readMark = (isMe && m.is_read) ? ' ✓' : ''
+      return `
+        <div style="display:flex;flex-direction:column;align-items:${isMe ? 'flex-end' : 'flex-start'};gap:2px">
+          <div style="
+            max-width:80%;padding:10px 14px;
+            border-radius:${isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};
+            background:${isMe ? 'var(--c-primary)' : '#fff'};
+            color:${isMe ? '#fff' : 'var(--c-text)'};
+            font-size:14px;line-height:1.5;
+            box-shadow:0 1px 3px rgba(0,0,0,0.08);
+            white-space:pre-wrap;word-break:break-word;
+          ">${escHtmlC(m.body)}</div>
+          <div style="font-size:11px;color:var(--c-muted);padding:0 4px">
+            ${isMe ? 'Вы' : 'Клиент'} · ${date}, ${time} МСК${readMark}
+          </div>
+        </div>
+      `
+    }).join('')
+
+    if (wasAtBottom || !silent) container.scrollTop = container.scrollHeight
+  } catch (err) {
+    if (!silent) container.innerHTML = `<div class="alert alert-error">${err.message}</div>`
+  }
+}
+
+window.sendConsultantMessage = async (bookingId) => {
+  const input = document.getElementById('cons-chat-input')
+  if (!input) return
+  const text = input.value.trim()
+  if (!text) return
+  input.value = ''
+  input.disabled = true
+  try {
+    await API.post(`/chat/${bookingId}`, { body: text })
+    await loadConsultantChatMessages(bookingId, true)
+    const c = document.getElementById('cons-chat-messages')
+    if (c) c.scrollTop = c.scrollHeight
+  } catch (err) {
+    input.value = text
+    toast(err.message, 'error')
+  } finally {
+    input.disabled = false
+    input.focus()
+  }
+}
+
+function escHtmlC(str) {
+  return str
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+// Показываем количество непрочитанных сообщений на дашборде (периодически)
+async function checkUnreadChats() {
+  try {
+    const { bookings } = await API.get('/bookings/consultant/list?status=paid&limit=20')
+    let totalUnread = 0
+    for (const b of (bookings || [])) {
+      const { unread } = await API.get(`/chat/${b.id}`)
+      totalUnread += unread || 0
+    }
+    if (totalUnread > 0) {
+      const badge = document.getElementById('chat-unread-badge')
+      if (badge) badge.textContent = totalUnread > 9 ? '9+' : String(totalUnread)
+    }
+  } catch(_) {}
 }
 
 // ---- Старт ----

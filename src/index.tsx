@@ -7,13 +7,17 @@ import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 import { serveStatic } from 'hono/cloudflare-workers'
 
-import authRoutes      from './routes/auth'
-import pagesRoutes    from './routes/pages'
-import slotsRoutes     from './routes/slots'
-import bookingsRoutes  from './routes/bookings'
-import paymentsRoutes  from './routes/payments'
+import authRoutes       from './routes/auth'
+import pagesRoutes      from './routes/pages'
+import slotsRoutes      from './routes/slots'
+import bookingsRoutes   from './routes/bookings'
+import paymentsRoutes   from './routes/payments'
 import consultantRoutes from './routes/consultant'
-import publicRoutes    from './routes/public'
+import publicRoutes     from './routes/public'
+import chatRoutes       from './routes/chat'
+import telemostRoutes   from './routes/telemost'
+import pushRoutes       from './routes/push'
+import tgBotRoutes      from './routes/telegram_bot'
 
 import type { Bindings, Variables } from './types'
 
@@ -35,6 +39,10 @@ app.route('/api/slots',      slotsRoutes)
 app.route('/api/bookings',   bookingsRoutes)
 app.route('/api/payments',   paymentsRoutes)
 app.route('/api/consultant', consultantRoutes)
+app.route('/api/chat',       chatRoutes)
+app.route('/api/telemost',   telemostRoutes)
+app.route('/api/push',       pushRoutes)
+app.route('/api/telegram',   tgBotRoutes)
 app.route('/api',            publicRoutes)
 
 // ---- Статика ----
