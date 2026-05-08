@@ -10,6 +10,26 @@ import type { Bindings, Variables } from '../types'
 
 const auth = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
+// Кука secure только когда реально HTTPS
+// (при доступе по IP или HTTP — не ставим secure, иначе браузер её не отправляет)
+function isSecureRequest(c: any): boolean {
+  const proto = c.req.header('X-Forwarded-Proto') || c.req.header('x-forwarded-proto')
+  if (proto === 'https') return true
+  // Прямой URL
+  const url = c.req.url
+  return url.startsWith('https://')
+}
+
+function cookieOpts(c: any, maxAge: number) {
+  return {
+    httpOnly: true,
+    secure: isSecureRequest(c),
+    sameSite: 'Lax' as const,
+    path: '/',
+    maxAge
+  }
+}
+
 // POST /api/auth/register/email — регистрация через email + пароль
 auth.post('/register/email', async (c) => {
   const { email, password, display_name } = await c.req.json()
@@ -42,12 +62,7 @@ auth.post('/register/email', async (c) => {
   const userId = result.meta.last_row_id as number
   const token = await signJWT({ userId, role: 'client' }, c.env.JWT_SECRET || 'dev-secret-change-in-prod')
 
-  setCookie(c, 'auth_token', token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Lax',
-    maxAge: 60 * 60 * 24 * 30 // 30 дней
-  })
+  setCookie(c, 'auth_token', token, cookieOpts(c, 60 * 60 * 24 * 30))
 
   return c.json({ ok: true, userId, token })
 })
@@ -87,12 +102,7 @@ auth.post('/register/anonymous', async (c) => {
   const userId = result.meta.last_row_id as number
   const token = await signJWT({ userId, role: 'client' }, c.env.JWT_SECRET || 'dev-secret-change-in-prod')
 
-  setCookie(c, 'auth_token', token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Lax',
-    maxAge: 60 * 60 * 24 * 30
-  })
+  setCookie(c, 'auth_token', token, cookieOpts(c, 60 * 60 * 24 * 30))
 
   return c.json({ ok: true, userId, token, login })
 })
@@ -135,12 +145,7 @@ auth.post('/login', async (c) => {
 
   const token = await signJWT({ userId: user.id, role: 'client' }, c.env.JWT_SECRET || 'dev-secret-change-in-prod')
 
-  setCookie(c, 'auth_token', token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Lax',
-    maxAge: 60 * 60 * 24 * 30
-  })
+  setCookie(c, 'auth_token', token, cookieOpts(c, 60 * 60 * 24 * 30))
 
   return c.json({ ok: true, userId: user.id, token })
 })
@@ -171,12 +176,7 @@ auth.post('/login/consultant', async (c) => {
 
   const token = await signJWT({ userId: user.id, role: 'consultant' }, c.env.JWT_SECRET || 'dev-secret-change-in-prod')
 
-  setCookie(c, 'auth_token', token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Lax',
-    maxAge: 60 * 60 * 24 * 7 // 7 дней для консультанта
-  })
+  setCookie(c, 'auth_token', token, cookieOpts(c, 60 * 60 * 24 * 7))
 
   return c.json({ ok: true, userId: user.id, token })
 })
