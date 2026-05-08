@@ -186,7 +186,7 @@
       <div class="bk-auth-notice-text">
         <strong>Вы уже зарегистрированы.</strong>
         Продолжите как <span id="auth-notice-name">пользователь</span>
-        или <a href="/auth.html?next=/book.html" id="auth-notice-switch">войдите в другой аккаунт</a>.
+        или <a href="#" id="auth-notice-switch" onclick="switchAccount(event)">войдите в другой аккаунт</a>.
       </div>
     </div>
 
@@ -832,6 +832,16 @@ async function submitBkBooking() {
     showAlert(alertBox, 'error', err.message)
     setLoading(btn, false)
   }
+}
+
+// Сменить аккаунт: сначала logout, потом redirect на auth
+async function switchAccount(e) {
+  e.preventDefault()
+  const link = document.getElementById('auth-notice-switch')
+  if (link) { link.textContent = 'Выход…'; link.style.pointerEvents = 'none' }
+  try { await API.post('/auth/logout') } catch (_) {}
+  Auth.clear()
+  window.location.href = '/auth.html?next=/book.html&switch=1'
 }
 
 // Запуск
