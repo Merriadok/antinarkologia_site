@@ -320,13 +320,52 @@ async function openBookingModal(bookingId) {
             <span style="font-size:14px;color:var(--c-muted)">${Fmt.meetingFormat(booking.meeting_format)}</span>
           </div>
 
-          <!-- Дата -->
+          <!-- Дата встречи / предложение времени -->
           <div class="form-group">
             <label class="form-label">📅 Дата встречи</label>
-            <div class="form-input" style="background:var(--c-bg);color:var(--c-muted);cursor:default">
-              ${booking.slot_starts_at ? Fmt.date(booking.slot_starts_at) : 'Не выбрана'}
-            </div>
+            ${booking.slot_starts_at ? `
+              <div class="form-input" style="background:var(--c-bg);color:var(--c-muted);cursor:default">
+                ${Fmt.date(booking.slot_starts_at)}
+              </div>
+            ` : booking.proposed_time && booking.proposed_time_status === 'pending' ? `
+              <div style="padding:10px 12px;background:#fffbeb;border:1px solid #f59e0b;border-radius:6px;font-size:14px">
+                ⏳ Ожидает подтверждения клиентом: <strong>${Fmt.date(booking.proposed_time)}</strong>
+              </div>
+            ` : booking.proposed_time && booking.proposed_time_status === 'accepted' ? `
+              <div style="padding:10px 12px;background:#f0fdf4;border:1px solid #22c55e;border-radius:6px;font-size:14px">
+                ✅ Клиент подтвердил: <strong>${Fmt.date(booking.proposed_time)}</strong>
+              </div>
+            ` : booking.proposed_time && booking.proposed_time_status === 'declined' ? `
+              <div style="padding:10px 12px;background:#fef2f2;border:1px solid #ef4444;border-radius:6px;font-size:14px;margin-bottom:8px">
+                ❌ Клиент отклонил предложение: ${Fmt.date(booking.proposed_time)}
+              </div>
+            ` : `
+              <div class="form-input" style="background:var(--c-bg);color:var(--c-muted);cursor:default">
+                Не выбрана
+              </div>
+            `}
           </div>
+
+          <!-- Предложить время клиенту (только если нет слота и нет pending-предложения) -->
+          ${!booking.slot_starts_at && booking.proposed_time_status !== 'pending' && ['paid','pending_payment'].includes(booking.status) ? `
+            <div class="form-group" style="padding:14px 16px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px">
+              <label class="form-label" style="color:#0369a1">🕐 Предложить время клиенту</label>
+              <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+                <div style="flex:1;min-width:200px">
+                  <input class="form-input" type="datetime-local" id="modal-propose-time"
+                    min="${new Date().toISOString().slice(0,16)}"
+                    style="font-size:14px">
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="proposeBookingTime(${booking.id})"
+                        style="white-space:nowrap">
+                  📨 Отправить предложение
+                </button>
+              </div>
+              <div class="form-hint" style="margin-top:6px">
+                Клиент получит уведомление и сможет подтвердить или отклонить время в своём ЛК
+              </div>
+            </div>
+          ` : ''}
 
           <!-- Контакты клиента -->
           ${contactsHtml ? `
@@ -415,6 +454,33 @@ function closeModal() {
   document.getElementById('modal-root').innerHTML = ''
 }
 window.closeModal = closeModal
+
+// Предложить время клиенту
+window.proposeBookingTime = async (id) => {
+  const input = document.getElementById('modal-propose-time')
+  if (!input || !input.value) {
+    toast('Выберите дату и время', 'error')
+    return
+  }
+  // Преобразуем локальное время в ISO (с часовым поясом консультанта)
+  const localDate = new Date(input.value)
+  if (isNaN(localDate.getTime())) {
+    toast('Некорректная дата', 'error')
+    return
+  }
+  const btn = document.querySelector('[onclick="proposeBookingTime(' + id + ')"]')
+  if (btn) { btn.disabled = true; btn.textContent = 'Отправляем...' }
+  try {
+    await API.post(`/bookings/${id}/propose-time`, { proposed_time: localDate.toISOString() })
+    toast('Предложение отправлено клиенту ✅', 'success', 4000)
+    closeModal()
+    if (currentPage === 'bookings') await loadBookingsList()
+    if (currentPage === 'dashboard') await renderDashboard()
+  } catch (err) {
+    toast(err.message, 'error')
+    if (btn) { btn.disabled = false; btn.textContent = '📨 Отправить предложение' }
+  }
+}
 
 window.saveBookingLink = async (id) => {
   const link = document.getElementById('modal-link')?.value.trim()

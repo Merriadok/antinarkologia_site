@@ -340,3 +340,129 @@ bookings.get('/consultant/list', requireConsultant, async (c) => {
 })
 
 export default bookings
+
+// POST /api/bookings/:id/propose-time — консультант предлагает время
+bookings.post('/:id/propose-time', requireConsultant, async (c) => {
+  const id = c.req.param('id')
+  const { proposed_time } = await c.req.json()
+
+  if (!proposed_time) return c.json({ error: 'proposed_time обязателен' }, 400)
+
+  const booking = await c.env.DB
+    .prepare('SELECT b.id, b.consultant_id, b.user_id, u.telegram_bot_chat_id FROM bookings b LEFT JOIN users u ON u.id = b.user_id WHERE b.id = ?')
+    .bind(id)
+    .first<{ id: number; consultant_id: number; user_id: number; telegram_bot_chat_id: string | null }>()
+
+  if (!booking) return c.json({ error: 'Запись не найдена' }, 404)
+
+  await c.env.DB
+    .prepare("UPDATE bookings SET proposed_time = ?, proposed_time_status = 'pending', updated_at = datetime('now') WHERE id = ?")
+    .bind(proposed_time, id)
+    .run()
+
+  // Автосообщение в чат
+  const timeStr = formatDate(proposed_time)
+  const consultant = await c.env.DB
+    .prepare('SELECT id FROM consultants WHERE is_active = 1 LIMIT 1')
+    .first<{ id: number }>()
+
+  await c.env.DB
+    .prepare('INSERT INTO chat_messages (booking_id, sender_type, sender_id, body) VALUES (?, ?, ?, ?)')
+    .bind(id, 'consultant', consultant?.id || 1,
+      `📅 Консультант предлагает время встречи: ${timeStr} (МСК)\n\nПожалуйста, подтвердите или откажитесь в своём личном кабинете.`)
+    .run()
+
+  // Telegram-уведомление клиенту
+  const token = (c.env as any).TELEGRAM_BOT_TOKEN
+  if (token && booking.telegram_bot_chat_id) {
+    const baseUrl = c.env.BASE_URL || 'https://antinarkologia.ru'
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: booking.telegram_bot_chat_id,
+        text: `📅 <b>Консультант предлагает время встречи</b>\n\n${timeStr} (МСК)\n\nПодтвердите или откажитесь в личном кабинете:\n${baseUrl}/lk.html`,
+        parse_mode: 'HTML'
+      })
+    }).catch(() => {})
+  }
+
+  return c.json({ ok: true })
+})
+
+// POST /api/bookings/:id/respond-time — клиент подтверждает или отказывается
+bookings.post('/:id/respond-time', requireAuth, async (c) => {
+  const userId = c.get('userId')
+  const id = c.req.param('id')
+  const { accept } = await c.req.json()
+
+  const booking = await c.env.DB
+    .prepare("SELECT * FROM bookings WHERE id = ? AND user_id = ? AND proposed_time_status = 'pending'")
+    .bind(id, userId)
+    .first<any>()
+
+  if (!booking) return c.json({ error: 'Запись не найдена или предложение уже обработано' }, 404)
+
+  const timeStr = formatDate(booking.proposed_time)
+
+  if (accept) {
+    // Создаём слот или берём существующий
+    let slotId: number | null = null
+    const existingSlot = await c.env.DB
+      .prepare('SELECT id FROM slots WHERE consultant_id = ? AND starts_at = ?')
+      .bind(booking.consultant_id, booking.proposed_time)
+      .first<{ id: number }>()
+
+    if (existingSlot) {
+      slotId = existingSlot.id
+    } else {
+      const endsAt = new Date(new Date(booking.proposed_time).getTime() + 60 * 60 * 1000).toISOString()
+      const slotResult = await c.env.DB
+        .prepare('INSERT INTO slots (consultant_id, starts_at, ends_at, is_available) VALUES (?, ?, ?, 0)')
+        .bind(booking.consultant_id, booking.proposed_time, endsAt)
+        .run()
+      slotId = slotResult.meta.last_row_id as number
+    }
+
+    await c.env.DB
+      .prepare("UPDATE bookings SET proposed_time_status = 'accepted', slot_id = ?, updated_at = datetime('now') WHERE id = ?")
+      .bind(slotId, id)
+      .run()
+  } else {
+    await c.env.DB
+      .prepare("UPDATE bookings SET proposed_time_status = 'declined', updated_at = datetime('now') WHERE id = ?")
+      .bind(id)
+      .run()
+  }
+
+  // Автосообщение в чат от клиента
+  const msgText = accept
+    ? `✅ Время подтверждено: ${timeStr} (МСК)`
+    : `❌ Клиент отказался от предложенного времени (${timeStr}). Пожалуйста, предложите другое время.`
+
+  await c.env.DB
+    .prepare('INSERT INTO chat_messages (booking_id, sender_type, sender_id, body) VALUES (?, ?, ?, ?)')
+    .bind(id, 'user', userId, msgText)
+    .run()
+
+  // Telegram-уведомление консультанту
+  const token = (c.env as any).TELEGRAM_BOT_TOKEN
+  const consultant = await c.env.DB
+    .prepare('SELECT telegram_chat_id FROM consultants WHERE is_active = 1 LIMIT 1')
+    .first<{ telegram_chat_id: string | null }>()
+
+  if (token && consultant?.telegram_chat_id) {
+    const baseUrl = c.env.BASE_URL || 'https://antinarkologia.ru'
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: consultant.telegram_chat_id,
+        text: `${msgText}\n\nЗапись #${id}\n${baseUrl}/consultant.html`,
+        parse_mode: 'HTML'
+      })
+    }).catch(() => {})
+  }
+
+  return c.json({ ok: true, accepted: accept })
+})

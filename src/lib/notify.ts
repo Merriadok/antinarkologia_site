@@ -14,6 +14,16 @@ interface EmailOptions {
 }
 
 export async function sendEmail(env: Bindings, opts: EmailOptions): Promise<boolean> {
+  // ⚠️ EMAIL ЗАКОНСЕРВИРОВАН: почтовый сервер не настроен в текущем тарифе.
+  // Функция тихо возвращает false и не делает никаких сетевых запросов.
+  // Чтобы включить: настройте SMTP-relay (Resend, SendGrid, Mailgun) и раскомментируйте код ниже.
+  // Проверяем наличие конфига — если задан EMAIL_ENABLED=true, пробуем отправить
+  if (env.EMAIL_ENABLED !== 'true') {
+    console.log(`[email] disabled — skipping send to ${opts.to} (${opts.subject})`)
+    return false
+  }
+
+  // --- Код отправки (активируется при EMAIL_ENABLED=true) ---
   // Используем MailChannels (работает бесплатно в Cloudflare Workers)
   // При необходимости можно заменить на SMTP-relay (Resend, SendGrid, etc.)
   try {

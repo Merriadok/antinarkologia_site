@@ -42,7 +42,8 @@ pub.get('/user/profile', requireAuth, async (c) => {
   const user = await c.env.DB
     .prepare(`
       SELECT id, email, login, display_name, phone, is_anonymous,
-             telegram_username, vk_profile, max_profile, notify_email, created_at
+             telegram_username, vk_profile, max_profile, notify_email,
+             telegram_bot_chat_id, created_at
       FROM users WHERE id = ?
     `)
     .bind(userId)
@@ -54,17 +55,19 @@ pub.get('/user/profile', requireAuth, async (c) => {
 // PATCH /api/user/profile — обновить профиль
 pub.patch('/user/profile', requireAuth, async (c) => {
   const userId = c.get('userId')
-  const { display_name, phone, telegram_username, vk_profile, max_profile, notify_email } = await c.req.json()
+  const { display_name, phone, telegram_username, vk_profile, max_profile, notify_email, email } = await c.req.json()
 
   const updates: string[] = ["last_seen_at = datetime('now')"]
   const values: any[] = []
 
-  if (display_name !== undefined)     { updates.push('display_name = ?'); values.push(display_name) }
-  if (phone !== undefined)            { updates.push('phone = ?'); values.push(phone) }
-  if (telegram_username !== undefined){ updates.push('telegram_username = ?'); values.push(telegram_username) }
-  if (vk_profile !== undefined)       { updates.push('vk_profile = ?'); values.push(vk_profile) }
-  if (max_profile !== undefined)      { updates.push('max_profile = ?'); values.push(max_profile) }
+  if (display_name !== undefined)     { updates.push('display_name = ?'); values.push(display_name || null) }
+  if (phone !== undefined)            { updates.push('phone = ?'); values.push(phone || null) }
+  if (telegram_username !== undefined){ updates.push('telegram_username = ?'); values.push(telegram_username || null) }
+  if (vk_profile !== undefined)       { updates.push('vk_profile = ?'); values.push(vk_profile || null) }
+  if (max_profile !== undefined)      { updates.push('max_profile = ?'); values.push(max_profile || null) }
   if (notify_email !== undefined)     { updates.push('notify_email = ?'); values.push(notify_email ? 1 : 0) }
+  // email — анонимный пользователь может добавить почту для уведомлений
+  if (email !== undefined)            { updates.push('email = ?'); values.push(email || null) }
 
   values.push(userId)
 

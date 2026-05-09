@@ -10,6 +10,7 @@ export type Bindings = {
   YUKASSA_SECRET_KEY: string
   EMAIL_FROM: string
   EMAIL_SMTP_URL: string          // smtp://user:pass@host:port
+  EMAIL_ENABLED: string           // 'true' чтобы включить отправку писем (по умолчанию отключено)
   CONSULTANT_EMAIL: string
   CONSULTANT_TELEGRAM_BOT_TOKEN: string
   CONSULTANT_TELEGRAM_CHAT_ID: string

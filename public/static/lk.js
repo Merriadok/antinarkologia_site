@@ -220,10 +220,37 @@ async function renderBookings() {
   $$('.btn-check-payment').forEach(btn => {
     btn.onclick = () => checkPayment(btn.dataset.id, btn)
   })
+  $$('.btn-accept-time').forEach(btn => {
+    btn.onclick = () => respondToProposedTime(btn.dataset.id, true, btn)
+  })
+  $$('.btn-decline-time').forEach(btn => {
+    btn.onclick = () => respondToProposedTime(btn.dataset.id, false, btn)
+  })
+}
+
+async function respondToProposedTime(bookingId, accept, btn) {
+  const msg = accept ? 'Подтверждаем время...' : 'Отклоняем...'
+  setLoading(btn, true, msg)
+  try {
+    await API.post(`/bookings/${bookingId}/respond-time`, { accept })
+    toast(accept ? 'Время встречи подтверждено! ✅' : 'Предложение отклонено. Консультант предложит другое время.', accept ? 'success' : 'info', 5000)
+    await renderBookings()
+  } catch (err) {
+    toast(err.message, 'error')
+    setLoading(btn, false)
+  }
 }
 
 function renderBookingCard(b, isUpcoming) {
-  const slot    = b.slot_starts_at ? `📅 ${Fmt.date(b.slot_starts_at)}` : '📅 По договорённости'
+  // Время: слот / предложенное / по договорённости
+  let slot = '📅 По договорённости'
+  if (b.slot_starts_at) {
+    slot = `📅 ${Fmt.date(b.slot_starts_at)}`
+  } else if (b.proposed_time && b.proposed_time_status === 'pending') {
+    slot = `📅 <span style="color:#f59e0b;font-weight:600">Предложено: ${Fmt.date(b.proposed_time)} — ожидает вашего ответа</span>`
+  } else if (b.proposed_time && b.proposed_time_status === 'declined') {
+    slot = `📅 <span style="color:var(--c-muted)">По договорённости</span> <span style="font-size:12px;color:#dc2626">(предложение отклонено)</span>`
+  }
   const format  = Fmt.meetingFormat(b.meeting_format)
   const tariff  = b.tariff_name || '—'
   const price   = b.price_rub ? Fmt.money(b.price_rub) : '—'
@@ -255,6 +282,21 @@ function renderBookingCard(b, isUpcoming) {
     contactBlock = `<div style="margin:10px 0 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center">${contactLinks.join('')}</div>`
   }
 
+  // Блок подтверждения предложенного времени
+  let proposeBlock = ''
+  if (b.proposed_time_status === 'pending' && ['paid', 'pending_payment'].includes(b.status)) {
+    proposeBlock = `
+      <div style="margin:10px 0;padding:12px 14px;background:#fffbeb;border:1px solid #f59e0b;border-radius:8px">
+        <div style="font-size:13px;font-weight:600;color:#92400e;margin-bottom:8px">
+          📅 Консультант предлагает время встречи: <strong>${Fmt.date(b.proposed_time)}</strong>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm btn-accept-time" data-id="${b.id}">✅ Подтвердить</button>
+          <button class="btn btn-ghost btn-sm btn-decline-time" data-id="${b.id}">❌ Не подходит</button>
+        </div>
+      </div>`
+  }
+
   // Действия
   let actions = ''
   if (b.status === 'pending_payment') {
@@ -281,6 +323,7 @@ function renderBookingCard(b, isUpcoming) {
         ${b.paid_at ? `<span class="booking-meta-item">· Оплачено ${Fmt.dateShort(b.paid_at)}</span>` : ''}
       </div>
       ${b.client_question ? `<div style="font-size:13px;color:var(--c-muted);font-style:italic;margin-top:4px">"${b.client_question}"</div>` : ''}
+      ${proposeBlock}
       ${contactBlock}
       ${actions ? `<div class="booking-actions">${actions}</div>` : ''}
     </div>
@@ -779,11 +822,14 @@ async function renderProfile() {
       <div class="card-body">
         <div id="profile-alert"></div>
 
+        <!-- Поле «Как обращаться» — для всех типов аккаунтов -->
+        <div class="form-group">
+          <label class="form-label">Как к вам обращаться?</label>
+          <input class="form-input" id="p-name" value="${user.display_name || ''}" placeholder="Имя или псевдоним">
+          <div class="form-hint">Консультант будет обращаться к вам так</div>
+        </div>
+
         ${!user.is_anonymous ? `
-          <div class="form-group">
-            <label class="form-label">Как к вам обращаться?</label>
-            <input class="form-input" id="p-name" value="${user.display_name || ''}" placeholder="Имя или псевдоним">
-          </div>
           <div class="form-group">
             <label class="form-label">Email</label>
             <input class="form-input" id="p-email" value="${user.email || ''}" disabled
@@ -791,8 +837,14 @@ async function renderProfile() {
             <div class="form-hint">Email изменить нельзя — он используется для входа</div>
           </div>
         ` : `
-          <div class="alert alert-info" style="margin-bottom:16px">
-            Вы используете анонимный аккаунт
+          <div class="alert alert-info" style="margin-bottom:8px;font-size:13px">
+            Вы используете анонимный аккаунт. Укажите email, чтобы получать уведомления.
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email <span style="font-weight:400;color:var(--c-muted)">(необязательно)</span></label>
+            <input class="form-input" id="p-email-anon" type="email"
+              value="${user.email || ''}" placeholder="your@email.com">
+            <div class="form-hint">Используется только для уведомлений, вход через логин/пароль не изменится</div>
           </div>
         `}
 
@@ -814,12 +866,25 @@ async function renderProfile() {
           <input class="form-input" id="p-max" value="${user.max_profile || ''}" placeholder="Ссылка на профиль">
         </div>
 
-        <div class="form-group" style="display:flex;align-items:center;gap:10px">
-          <input type="checkbox" id="p-notify" ${user.notify_email ? 'checked' : ''} style="width:16px;height:16px">
-          <label for="p-notify" style="font-size:14px;cursor:pointer">
-            Получать уведомления на email
-          </label>
-        </div>
+        <!-- Галочка notify_email: для анонима без email — серая с подсказкой -->
+        ${(user.is_anonymous && !user.email) ? `
+          <div class="form-group" style="display:flex;align-items:center;gap:10px;opacity:0.5">
+            <input type="checkbox" id="p-notify" disabled style="width:16px;height:16px">
+            <label for="p-notify" style="font-size:14px;cursor:not-allowed">
+              Получать уведомления на email
+            </label>
+          </div>
+          <div class="form-hint" style="margin-top:-10px;margin-bottom:12px">
+            Укажите email выше, чтобы включить уведомления
+          </div>
+        ` : `
+          <div class="form-group" style="display:flex;align-items:center;gap:10px">
+            <input type="checkbox" id="p-notify" ${user.notify_email ? 'checked' : ''} style="width:16px;height:16px">
+            <label for="p-notify" style="font-size:14px;cursor:pointer">
+              Получать уведомления на email
+            </label>
+          </div>
+        `}
 
         <button class="btn btn-primary" onclick="saveProfile()">Сохранить</button>
       </div>
@@ -845,7 +910,38 @@ async function renderProfile() {
             ✈️ Подключить Telegram
           </button>
           <div class="form-hint" style="margin-top:8px">
-            Вы перейдёте к боту с персональным кодом — нажмите «Старт»
+            Нажмите кнопку — откроется бот, нажмите в нём «Старт»
+          </div>
+
+          <!-- Fallback: показывается если deeplink не сработал (бот уже был открыт) -->
+          <div id="tg-fallback" style="display:none;margin-top:16px;padding:14px 16px;
+               background:#fffbeb;border:1px solid #f59e0b;border-radius:8px">
+            <div style="font-size:13px;font-weight:600;color:#92400e;margin-bottom:8px">
+              ⚠️ Бот уже был открыт? Введите код вручную
+            </div>
+            <p style="font-size:13px;color:var(--c-muted);margin-bottom:10px;line-height:1.5">
+              Если бот Telegram уже был открыт ранее — автоматический код не передаётся.
+              Откройте бота и отправьте ему это сообщение:
+            </p>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <code style="font-family:monospace;font-size:14px;font-weight:700;
+                           background:#fff;padding:6px 12px;border-radius:6px;
+                           border:1px solid #f59e0b;flex:1;user-select:all;word-break:break-all"
+                    id="tg-fallback-code"></code>
+              <button onclick="copyTelegramCode()" class="btn btn-outline btn-sm"
+                      style="white-space:nowrap;border-color:#f59e0b;color:#92400e">
+                📋 Копировать
+              </button>
+            </div>
+            <div style="font-size:12px;color:var(--c-muted)">
+              Или напишите боту: <strong>/start [код выше]</strong>
+            </div>
+            <div style="margin-top:10px">
+              <a href="https://t.me/antinarkologia_bot" target="_blank"
+                 class="btn btn-outline btn-sm">
+                ✈️ Открыть бота ещё раз
+              </a>
+            </div>
           </div>
         `}
       </div>
@@ -856,12 +952,41 @@ async function renderProfile() {
 }
 
 // Кнопка «Подключить Telegram» — открывает бота с кодом подтверждения
+// Если deeplink ?start= не сработал (бот уже открыт) — показываем fallback с кодом
 function connectTelegram(userId) {
   const code = btoa(String(userId))
   const botUrl = `https://t.me/antinarkologia_bot?start=${code}`
+
+  // Открываем бот в новой вкладке
   window.open(botUrl, '_blank')
+
+  // Через 1.5 сек показываем fallback-блок с кодом для ручного ввода
+  // (на случай если бот уже открыт и deeplink ?start= не передался)
+  setTimeout(() => {
+    const fallback = document.getElementById('tg-fallback')
+    if (!fallback) return
+    fallback.style.display = 'block'
+    document.getElementById('tg-fallback-code').textContent = code
+  }, 1500)
 }
 window.connectTelegram = connectTelegram
+
+// Копировать код в буфер обмена
+function copyTelegramCode() {
+  const code = document.getElementById('tg-fallback-code')?.textContent
+  if (!code) return
+  navigator.clipboard.writeText(code).then(() => {
+    toast('Код скопирован в буфер обмена', 'success', 2000)
+  }).catch(() => {
+    // fallback для старых браузеров
+    const sel = window.getSelection()
+    const range = document.createRange()
+    range.selectNodeContents(document.getElementById('tg-fallback-code'))
+    sel.removeAllRanges()
+    sel.addRange(range)
+  })
+}
+window.copyTelegramCode = copyTelegramCode
 
 // Строим карточку «Данные для входа» для анонима
 function buildAnonCredentialsCard(login) {
@@ -969,16 +1094,33 @@ window.rememberAnonPwd = rememberAnonPwd
 
 async function saveProfile() {
   const alertBox = document.getElementById('profile-alert')
+
+  // Email: у анонима есть отдельное поле p-email-anon, у обычного — disabled (не берём)
+  const emailInput = document.getElementById('p-email-anon')
+  const emailVal   = emailInput ? emailInput.value.trim() : undefined
+
+  // notify_email: если чекбокс disabled — не трогаем (анонимы без email)
+  const notifyEl    = document.getElementById('p-notify')
+  const notifyValue = (notifyEl && !notifyEl.disabled) ? notifyEl.checked : undefined
+
   const body = {
     display_name:      document.getElementById('p-name')?.value.trim() || undefined,
     phone:             document.getElementById('p-phone')?.value.trim() || undefined,
     telegram_username: document.getElementById('p-tg')?.value.trim().replace('@','') || undefined,
     max_profile:       document.getElementById('p-max')?.value.trim() || undefined,
-    notify_email:      document.getElementById('p-notify')?.checked,
+    notify_email:      notifyValue,
+    ...(emailVal !== undefined ? { email: emailVal || null } : {}),
   }
+
   try {
     await API.patch('/user/profile', body)
-    showAlert(alertBox, 'success', 'Профиль сохранён')
+    showAlert(alertBox, 'success', 'Профиль сохранён ✓')
+    // Если аноним указал email — обновляем currentUser для галочки notify_email
+    if (emailVal) {
+      currentUser = { ...currentUser, email: emailVal }
+      // Перерисовываем профиль чтобы галочка стала активной
+      await renderProfile()
+    }
   } catch (err) {
     showAlert(alertBox, 'error', err.message)
   }

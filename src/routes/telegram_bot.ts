@@ -62,7 +62,11 @@ bot.post('/webhook', async (c) => {
     if (code) {
       // Ищем пользователя по коду (user_id закодирован в base64 или просто число)
       let userId: number | null = null
-      try { userId = parseInt(Buffer.from(code, 'base64').toString()) || parseInt(code) } catch { userId = parseInt(code) }
+      try {
+        // Buffer недоступен в Cloudflare Workers — используем atob (Web API)
+        const decoded = atob(code)
+        userId = parseInt(decoded) || parseInt(code)
+      } catch { userId = parseInt(code) }
 
       if (userId && !isNaN(userId)) {
         const user = await c.env.DB
