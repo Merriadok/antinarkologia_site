@@ -1216,6 +1216,20 @@ async function loadConsultantChatMessages(bookingId, silent = false) {
     }
 
     container.innerHTML = messages.map(m => {
+      // Системные сообщения — центрированные, серые
+      if (m.sender_type === 'system') {
+        return `
+          <div style="display:flex;justify-content:center;margin:4px 0">
+            <div style="
+              max-width:90%;padding:8px 14px;border-radius:10px;
+              background:#f0f0f0;color:#666;
+              font-size:12px;line-height:1.5;text-align:center;
+              border:1px solid #e5e5e5;
+              white-space:pre-wrap;word-break:break-word;
+            ">${escHtmlC(m.body)}</div>
+          </div>
+        `
+      }
       const isMe = m.sender_type === 'consultant'
       const time = new Date(m.created_at).toLocaleTimeString('ru-RU', {
         hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow'

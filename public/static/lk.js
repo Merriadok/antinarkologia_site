@@ -255,31 +255,43 @@ function renderBookingCard(b, isUpcoming) {
   const tariff  = b.tariff_name || '—'
   const price   = b.price_rub ? Fmt.money(b.price_rub) : '—'
 
-  // Контакт консультанта (только если оплачено)
+  // Контакт консультанта и кнопки действий
   let contactBlock = ''
-  if (b.status === 'paid' || b.status === 'in_progress') {
+  {
     let contactLinks = []
-    if (b.meeting_format === 'telemost') {
+
+    // Ссылка на встречу — только если оплачено
+    if ((b.status === 'paid' || b.status === 'in_progress') && b.meeting_format === 'telemost') {
       if (b.meeting_link) {
         contactLinks.push(`<a href="${b.meeting_link}" target="_blank" class="btn btn-accent btn-sm">📹 Войти в TeleМост</a>`)
       } else {
-        // Ссылка ещё не создана — показываем информационный плейсхолдер
         contactLinks.push(`
           <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;
                 background:#f0f6ff;border-radius:6px;font-size:13px;color:var(--c-muted);border:1px solid var(--c-border)">
             📹 Ссылка TeleМост — будет добавлена консультантом
           </span>`)
       }
-    } else if (b.meeting_format === 'telegram' && b.consultant_telegram) {
+    } else if ((b.status === 'paid' || b.status === 'in_progress') && b.meeting_format === 'telegram' && b.consultant_telegram) {
       contactLinks.push(`<a href="https://t.me/${b.consultant_telegram}" target="_blank" class="btn btn-outline btn-sm">✈️ Telegram консультанта</a>`)
-    } else if (b.meeting_format === 'max') {
+    } else if ((b.status === 'paid' || b.status === 'in_progress') && b.meeting_format === 'max') {
       contactLinks.push(`<span style="font-size:13px;color:var(--c-muted);padding:6px 0;display:inline-block">💙 Консультант напишет в Макс в согласованное время</span>`)
-    } else if (b.meeting_format === 'phone') {
+    } else if ((b.status === 'paid' || b.status === 'in_progress') && b.meeting_format === 'phone') {
       contactLinks.push(`<span style="font-size:13px;color:var(--c-muted);padding:6px 0;display:inline-block">📞 Консультант позвонит в согласованное время</span>`)
     }
-    // Кнопка чата (для всех оплаченных записей)
-    contactLinks.push(`<button class="btn btn-outline btn-sm btn-open-chat" data-id="${b.id}" onclick="openChat(${b.id})">💬 Чат с консультантом</button>`)
-    contactBlock = `<div style="margin:10px 0 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center">${contactLinks.join('')}</div>`
+
+    // Кнопка чата — для ВСЕХ активных записей (в т.ч. pending_payment)
+    if (['pending_payment', 'paid', 'in_progress'].includes(b.status)) {
+      contactLinks.push(`<button class="btn btn-outline btn-sm" onclick="openChat(${b.id})">💬 Чат с консультантом</button>`)
+    }
+
+    // Кнопка «Выбрать время» — если слот не выбран и нет pending-предложения
+    if (!b.slot_starts_at && !b.proposed_time && ['pending_payment', 'paid'].includes(b.status)) {
+      contactLinks.push(`<button class="btn btn-outline btn-sm" onclick="openChooseSlot(${b.id})">📅 Выбрать время</button>`)
+    }
+
+    if (contactLinks.length) {
+      contactBlock = `<div style="margin:10px 0 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center">${contactLinks.join('')}</div>`
+    }
   }
 
   // Блок подтверждения предложенного времени
@@ -1205,6 +1217,20 @@ async function loadChatMessages(bookingId, silent = false) {
     }
 
     container.innerHTML = messages.map(m => {
+      // Системные сообщения — отдельный стиль (по центру, серый)
+      if (m.sender_type === 'system') {
+        return `
+          <div style="display:flex;justify-content:center;margin:4px 0">
+            <div style="
+              max-width:90%;padding:8px 14px;border-radius:10px;
+              background:#f0f0f0;color:#666;
+              font-size:12px;line-height:1.5;text-align:center;
+              border:1px solid #e5e5e5;
+              white-space:pre-wrap;word-break:break-word;
+            ">${escHtml(m.body)}</div>
+          </div>
+        `
+      }
       const isMe = m.sender_type === 'user'
       const time = new Date(m.created_at).toLocaleTimeString('ru-RU', {
         hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow'
@@ -1273,6 +1299,124 @@ function closeChat() {
   document.getElementById('modal-root').innerHTML = ''
 }
 window.closeChat = closeChat
+
+// ============================================================
+// Выбор слота клиентом (если slot_id = NULL при создании записи)
+// ============================================================
+
+async function openChooseSlot(bookingId) {
+  const modal = document.getElementById('modal-root')
+  modal.innerHTML = `
+    <div class="modal-overlay" onclick="closeChooseSlot()">
+      <div class="modal" onclick="event.stopPropagation()" style="max-width:480px">
+        <div class="modal-header">
+          <div class="modal-title">📅 Выбрать время встречи</div>
+          <button class="modal-close" onclick="closeChooseSlot()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="loading-overlay"><div class="spinner"></div> Загружаем расписание...</div>
+        </div>
+      </div>
+    </div>
+  `
+
+  try {
+    const from = new Date()
+    const to   = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    const resp = await API.get(`/slots?consultant_id=1&from=${mskDateStr(from)}&to=${mskDateStr(to)}`)
+    const slots = resp.slots || []
+
+    if (slots.length === 0) {
+      modal.querySelector('.modal-body').innerHTML = `
+        <div class="alert alert-info">
+          Свободных слотов пока нет. Напишите консультанту в чате — он предложит время вручную.
+        </div>
+        <div style="margin-top:12px">
+          <button class="btn btn-outline btn-sm" onclick="closeChooseSlot()">Закрыть</button>
+        </div>
+      `
+      return
+    }
+
+    // Группируем по дням
+    const byDay = {}
+    slots.forEach(s => {
+      const day = new Date(s.starts_at).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow', weekday: 'long', day: 'numeric', month: 'long' })
+      if (!byDay[day]) byDay[day] = []
+      byDay[day].push(s)
+    })
+
+    let selectedSlotId = null
+
+    modal.querySelector('.modal-body').innerHTML = `
+      <p style="font-size:13px;color:var(--c-muted);margin-bottom:14px;line-height:1.5">
+        Выберите удобное время для встречи с консультантом.
+        Все слоты указаны по московскому времени (МСК).
+      </p>
+      <div id="choose-slot-grid">
+        ${Object.entries(byDay).map(([day, daySlots]) => `
+          <div style="margin-bottom:16px">
+            <div style="font-size:12px;font-weight:600;text-transform:capitalize;
+                        color:var(--c-muted);margin-bottom:8px;padding-bottom:4px;
+                        border-bottom:1px solid var(--c-border)">${day}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              ${daySlots.map(s => {
+                const time = new Date(s.starts_at).toLocaleTimeString('ru-RU', {
+                  hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow'
+                })
+                return `<button class="time-slot" data-slot-id="${s.id}"
+                  onclick="selectChooseSlot(${s.id}, this)">${time}</button>`
+              }).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div id="choose-slot-alert" style="margin-top:8px"></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-ghost" onclick="closeChooseSlot()">Отмена</button>
+        <button class="btn btn-primary" id="btn-confirm-slot" disabled
+          onclick="confirmChooseSlot(${bookingId})">
+          ✅ Подтвердить время
+        </button>
+      </div>
+    `
+
+    window._chooseSlotId = null
+    window.selectChooseSlot = (slotId, btn) => {
+      window._chooseSlotId = slotId
+      document.querySelectorAll('#choose-slot-grid .time-slot').forEach(el => el.classList.remove('selected'))
+      btn.classList.add('selected')
+      document.getElementById('btn-confirm-slot').disabled = false
+    }
+
+  } catch (err) {
+    modal.querySelector('.modal-body').innerHTML = `<div class="alert alert-error">${err.message}</div>`
+  }
+}
+window.openChooseSlot = openChooseSlot
+
+async function confirmChooseSlot(bookingId) {
+  const slotId = window._chooseSlotId
+  if (!slotId) return
+  const btn = document.getElementById('btn-confirm-slot')
+  setLoading(btn, true, 'Сохраняем...')
+  try {
+    await API.post(`/bookings/${bookingId}/choose-slot`, { slot_id: slotId })
+    toast('Время выбрано! Консультант получил уведомление. ✅', 'success', 5000)
+    closeChooseSlot()
+    await renderBookings()
+  } catch (err) {
+    showAlert(document.getElementById('choose-slot-alert'), 'error', err.message)
+    setLoading(btn, false)
+  }
+}
+window.confirmChooseSlot = confirmChooseSlot
+
+function closeChooseSlot() {
+  window._chooseSlotId = null
+  document.getElementById('modal-root').innerHTML = ''
+}
+window.closeChooseSlot = closeChooseSlot
 
 function escHtml(str) {
   return str

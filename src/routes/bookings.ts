@@ -6,9 +6,12 @@ import { Hono } from 'hono'
 import { requireAuth, requireConsultant } from '../middleware/auth'
 import { YukassaClient } from '../lib/yukassa'
 import { sendEmail, sendTelegram, bookingCreatedEmail, newBookingConsultantTelegram } from '../lib/notify'
+import { addSystemChatMessage } from './chat'
 import type { Bindings, Variables, MeetingFormat } from '../types'
 
 const bookings = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+
+const TG_PROXY = 'https://tg-proxy-antinarkologia.trade-merry.workers.dev'
 
 // Форматирование даты для отображения (UTC → читаемый вид)
 function formatDate(iso: string): string {
@@ -29,6 +32,19 @@ const meetingFormatLabels: Record<string, string> = {
   telegram: 'Telegram/Макс',
   max: 'Макс',
   phone: 'Телефонный звонок'
+}
+
+// ---- Вспомогательная: отправить tg-уведомление (через прокси) ----
+async function tgNotify(token: string, chatId: string, text: string) {
+  try {
+    await fetch(`${TG_PROXY}/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
+    })
+  } catch (err) {
+    console.error('[bookings] tgNotify error:', err)
+  }
 }
 
 // POST /api/bookings — создать бронирование + инициировать оплату
@@ -103,6 +119,24 @@ bookings.post('/', requireAuth, async (c) => {
 
   const bookingId = result.meta.last_row_id as number
 
+  // Системное сообщение в чат о создании записи
+  const slot = slot_id
+    ? await c.env.DB.prepare('SELECT starts_at FROM slots WHERE id = ?').bind(slot_id).first<{ starts_at: string }>()
+    : null
+
+  const fmtLabel = meetingFormatLabels[meeting_format] || meeting_format
+  const slotInfo = slot ? `\n📅 Время: ${formatDate(slot.starts_at)}` : '\n📅 Время: будет согласовано с консультантом'
+
+  await addSystemChatMessage(
+    c.env.DB,
+    bookingId,
+    `📋 Запись #${bookingId} создана\n` +
+    `📦 Услуга: ${tariff.name}\n` +
+    `📞 Формат: ${fmtLabel}` +
+    slotInfo + '\n\n' +
+    `⏳ Ожидает оплаты. Чат доступен сразу — напишите консультанту!`
+  )
+
   // Инициируем платёж в ЮKassa
   const baseUrl = c.env.BASE_URL || 'https://antinarkologia.ru'
   let paymentUrl = `${baseUrl}/lk?booking=${bookingId}&status=pending`
@@ -113,10 +147,6 @@ bookings.post('/', requireAuth, async (c) => {
       c.env.YUKASSA_SHOP_ID,
       c.env.YUKASSA_SECRET_KEY
     )
-
-    const slot = slot_id
-      ? await c.env.DB.prepare('SELECT starts_at FROM slots WHERE id = ?').bind(slot_id).first<{ starts_at: string }>()
-      : null
 
     const description = slot
       ? `${tariff.name} — ${formatDate(slot.starts_at)}`
@@ -166,16 +196,12 @@ bookings.post('/', requireAuth, async (c) => {
     .bind(userId)
     .first<{ email: string | null; display_name: string | null }>()
 
-  const slot = slot_id
-    ? await c.env.DB.prepare('SELECT starts_at FROM slots WHERE id = ?').bind(slot_id).first<{ starts_at: string }>()
-    : null
-
   if (user?.email) {
     const emailData = bookingCreatedEmail({
       displayName: user.display_name || '',
       tariffName: tariff.name,
       slotDate: slot ? formatDate(slot.starts_at) : 'По договорённости',
-      meetingFormat: meetingFormatLabels[meeting_format] || meeting_format,
+      meetingFormat: fmtLabel,
       paymentUrl
     })
     await sendEmail(c.env, { to: user.email, ...emailData })
@@ -274,6 +300,27 @@ bookings.patch('/:id', requireConsultant, async (c) => {
     .bind(...values)
     .run()
 
+  // Системное сообщение в чат при смене статуса
+  if (status) {
+    const statusMessages: Record<string, string> = {
+      'paid':        '✅ Оплата подтверждена. Консультант готов к встрече!',
+      'in_progress': '▶️ Встреча началась.',
+      'completed':   '✔️ Встреча завершена. Спасибо за доверие!',
+      'cancelled':   '❌ Запись отменена консультантом.',
+    }
+    if (statusMessages[status]) {
+      await addSystemChatMessage(c.env.DB, id, statusMessages[status])
+    }
+  }
+
+  // Системное сообщение при добавлении ссылки на встречу
+  if (meeting_link) {
+    await addSystemChatMessage(
+      c.env.DB, id,
+      `🔗 Консультант добавил ссылку на встречу.\nПроверьте свой личный кабинет — кнопка появилась на карточке записи.`
+    )
+  }
+
   return c.json({ ok: true })
 })
 
@@ -300,6 +347,8 @@ bookings.post('/:id/cancel', requireAuth, async (c) => {
       WHERE id = ?
     `)
     .bind(id).run()
+
+  await addSystemChatMessage(c.env.DB, id, '❌ Клиент отменил запись.')
 
   return c.json({ ok: true })
 })
@@ -339,8 +388,6 @@ bookings.get('/consultant/list', requireConsultant, async (c) => {
   return c.json({ bookings: result.results })
 })
 
-export default bookings
-
 // POST /api/bookings/:id/propose-time — консультант предлагает время
 bookings.post('/:id/propose-time', requireConsultant, async (c) => {
   const id = c.req.param('id')
@@ -366,25 +413,18 @@ bookings.post('/:id/propose-time', requireConsultant, async (c) => {
     .prepare('SELECT id FROM consultants WHERE is_active = 1 LIMIT 1')
     .first<{ id: number }>()
 
-  await c.env.DB
-    .prepare('INSERT INTO chat_messages (booking_id, sender_type, sender_id, body) VALUES (?, ?, ?, ?)')
-    .bind(id, 'consultant', consultant?.id || 1,
-      `📅 Консультант предлагает время встречи: ${timeStr} (МСК)\n\nПожалуйста, подтвердите или откажитесь в своём личном кабинете.`)
-    .run()
+  await addSystemChatMessage(
+    c.env.DB, id,
+    `📅 Консультант предлагает время встречи: <b>${timeStr}</b>\n\nПожалуйста, подтвердите или откажитесь в своём личном кабинете.`
+  )
 
   // Telegram-уведомление клиенту
   const token = (c.env as any).TELEGRAM_BOT_TOKEN
   if (token && booking.telegram_bot_chat_id) {
     const baseUrl = c.env.BASE_URL || 'https://antinarkologia.ru'
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: booking.telegram_bot_chat_id,
-        text: `📅 <b>Консультант предлагает время встречи</b>\n\n${timeStr} (МСК)\n\nПодтвердите или откажитесь в личном кабинете:\n${baseUrl}/lk.html`,
-        parse_mode: 'HTML'
-      })
-    }).catch(() => {})
+    await tgNotify(token, booking.telegram_bot_chat_id,
+      `📅 <b>Консультант предлагает время встречи</b>\n\n${timeStr}\n\nПодтвердите или откажитесь в личном кабинете:\n${baseUrl}/lk.html`
+    )
   }
 
   return c.json({ ok: true })
@@ -437,13 +477,10 @@ bookings.post('/:id/respond-time', requireAuth, async (c) => {
 
   // Автосообщение в чат от клиента
   const msgText = accept
-    ? `✅ Время подтверждено: ${timeStr} (МСК)`
+    ? `✅ Клиент подтвердил время встречи: ${timeStr}`
     : `❌ Клиент отказался от предложенного времени (${timeStr}). Пожалуйста, предложите другое время.`
 
-  await c.env.DB
-    .prepare('INSERT INTO chat_messages (booking_id, sender_type, sender_id, body) VALUES (?, ?, ?, ?)')
-    .bind(id, 'user', userId, msgText)
-    .run()
+  await addSystemChatMessage(c.env.DB, id, msgText)
 
   // Telegram-уведомление консультанту
   const token = (c.env as any).TELEGRAM_BOT_TOKEN
@@ -453,16 +490,78 @@ bookings.post('/:id/respond-time', requireAuth, async (c) => {
 
   if (token && consultant?.telegram_chat_id) {
     const baseUrl = c.env.BASE_URL || 'https://antinarkologia.ru'
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: consultant.telegram_chat_id,
-        text: `${msgText}\n\nЗапись #${id}\n${baseUrl}/consultant.html`,
-        parse_mode: 'HTML'
-      })
-    }).catch(() => {})
+    await tgNotify(token, consultant.telegram_chat_id,
+      `${msgText}\n\nЗапись #${id}\n${baseUrl}/consultant.html`
+    )
   }
 
   return c.json({ ok: true, accepted: accept })
 })
+
+// POST /api/bookings/:id/choose-slot — клиент выбирает слот (если slot_id = NULL)
+bookings.post('/:id/choose-slot', requireAuth, async (c) => {
+  const userId = c.get('userId')
+  const id = c.req.param('id')
+  const { slot_id } = await c.req.json()
+
+  if (!slot_id) return c.json({ error: 'slot_id обязателен' }, 400)
+
+  // Проверяем что запись принадлежит пользователю и слот не выбран
+  const booking = await c.env.DB
+    .prepare("SELECT id, slot_id, status FROM bookings WHERE id = ? AND user_id = ?")
+    .bind(id, userId)
+    .first<{ id: number; slot_id: number | null; status: string }>()
+
+  if (!booking) return c.json({ error: 'Запись не найдена' }, 404)
+
+  if (!['pending_payment', 'paid', 'in_progress'].includes(booking.status)) {
+    return c.json({ error: 'Нельзя выбрать слот для записи в текущем статусе' }, 409)
+  }
+
+  // Проверяем слот
+  const slot = await c.env.DB
+    .prepare('SELECT id, starts_at FROM slots WHERE id = ? AND is_available = 1')
+    .bind(slot_id)
+    .first<{ id: number; starts_at: string }>()
+
+  if (!slot) return c.json({ error: 'Слот недоступен или уже занят' }, 409)
+
+  // Проверяем что слот не занят другой записью
+  const alreadyBooked = await c.env.DB
+    .prepare("SELECT id FROM bookings WHERE slot_id = ? AND id != ? AND status IN ('paid', 'in_progress')")
+    .bind(slot_id, id)
+    .first()
+
+  if (alreadyBooked) return c.json({ error: 'Слот уже занят другой записью' }, 409)
+
+  // Обновляем запись
+  await c.env.DB
+    .prepare("UPDATE bookings SET slot_id = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(slot_id, id)
+    .run()
+
+  const timeStr = formatDate(slot.starts_at)
+
+  // Системное сообщение в чат
+  await addSystemChatMessage(
+    c.env.DB, id,
+    `📅 Клиент выбрал время встречи: ${timeStr}`
+  )
+
+  // Уведомление консультанту
+  const token = (c.env as any).TELEGRAM_BOT_TOKEN
+  const consultant = await c.env.DB
+    .prepare('SELECT telegram_chat_id FROM consultants WHERE is_active = 1 LIMIT 1')
+    .first<{ telegram_chat_id: string | null }>()
+
+  if (token && consultant?.telegram_chat_id) {
+    const baseUrl = c.env.BASE_URL || 'https://antinarkologia.ru'
+    await tgNotify(token, consultant.telegram_chat_id,
+      `📅 Клиент выбрал время встречи по записи #${id}\n\n${timeStr}\n\n${baseUrl}/consultant.html`
+    )
+  }
+
+  return c.json({ ok: true, slot_starts_at: slot.starts_at })
+})
+
+export default bookings

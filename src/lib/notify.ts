@@ -52,7 +52,7 @@ export async function sendTelegram(botToken: string, chatId: string, text: strin
   if (!botToken || !chatId) return false
   try {
     const resp = await fetch(
-      `https://api.telegram.org/bot${botToken}/sendMessage`,
+      `https://tg-proxy-antinarkologia.trade-merry.workers.dev/bot${botToken}/sendMessage`,
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

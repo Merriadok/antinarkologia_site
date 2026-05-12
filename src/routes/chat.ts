@@ -3,8 +3,11 @@
 // POST   /api/chat/:bookingId          — отправить сообщение
 // GET    /api/chat/:bookingId          — получить историю
 // POST   /api/chat/:bookingId/read     — пометить как прочитанные
-// POST   /api/push/subscribe           — сохранить push-подписку
-// DELETE /api/push/subscribe           — удалить push-подписку
+// POST   /api/chat/:bookingId/system   — системное сообщение (внутренний вызов)
+//
+// Доступ к чату:
+//   Чат открыт сразу после создания записи (status = pending_payment тоже OK).
+//   Фильтр по status='paid' убран — клиент может писать с момента создания записи.
 // ============================================================
 
 import { Hono } from 'hono'
@@ -29,6 +32,25 @@ async function canAccessChat(
   return booking.user_id === userId
 }
 
+// ---- Вспомогательная: добавить системное сообщение в чат ----
+export async function addSystemChatMessage(
+  db: D1Database,
+  bookingId: number | string,
+  body: string
+): Promise<void> {
+  try {
+    await db
+      .prepare(`
+        INSERT INTO chat_messages (booking_id, sender_type, sender_id, body)
+        VALUES (?, 'system', 0, ?)
+      `)
+      .bind(String(bookingId), body)
+      .run()
+  } catch (err) {
+    console.error(`[chat] addSystemChatMessage error bookingId=${bookingId}:`, err)
+  }
+}
+
 // ---- GET /api/chat/:bookingId — история сообщений ----
 chat.get('/:bookingId', requireAuth, async (c) => {
   const userId    = c.get('userId')
@@ -51,6 +73,7 @@ chat.get('/:bookingId', requireAuth, async (c) => {
     .all()
 
   // Считаем непрочитанные для текущего участника
+  // system-сообщения не считаются непрочитанными (только user/consultant)
   const unreadType = role === 'consultant' ? 'user' : 'consultant'
   const unread = (result.results as any[]).filter(
     m => m.sender_type === unreadType && !m.is_read
@@ -129,10 +152,10 @@ async function notifyNewMessage(
 ) {
   if (!env.TELEGRAM_BOT_TOKEN) return
 
-  // Получаем данные о записи
   const booking = await (env.DB as D1Database)
     .prepare(`
       SELECT b.id, u.display_name, u.telegram_username,
+             u.telegram_bot_chat_id as user_tg_chat_id,
              con.telegram_chat_id as consultant_tg_id
       FROM bookings b
       LEFT JOIN users u ON u.id = b.user_id
@@ -144,71 +167,38 @@ async function notifyNewMessage(
       id: number
       display_name: string | null
       telegram_username: string | null
+      user_tg_chat_id: string | null
       consultant_tg_id: string | null
     }>()
 
   if (!booking) return
 
   const preview = body.length > 100 ? body.slice(0, 97) + '…' : body
+  const baseUrl = (env as any).BASE_URL || 'https://antinarkologia.ru'
+  const proxyBase = 'https://tg-proxy-antinarkologia.trade-merry.workers.dev'
 
   if (senderType === 'user' && booking.consultant_tg_id) {
-    // Уведомить консультанта о новом сообщении от клиента
     const clientName = booking.display_name || `Клиент #${bookingId}`
-    await sendTelegramNotification(
-      env.TELEGRAM_BOT_TOKEN,
-      booking.consultant_tg_id,
-      `💬 Новое сообщение в чате (запись #${bookingId})\n` +
-      `От: ${clientName}\n\n"${preview}"\n\n` +
-      `👉 Ответить: ${env.BASE_URL || 'https://antinarkologia.ru'}/consultant.html`
-    )
-  } else if (senderType === 'consultant' && booking.telegram_username) {
-    // Уведомить клиента о ответе консультанта через бот
-    // (только если клиент подписан на бота)
-    const chatId = await findUserTelegramChatId(env.DB as D1Database, bookingId)
-    if (chatId) {
-      await sendTelegramNotification(
-        env.TELEGRAM_BOT_TOKEN,
-        chatId,
-        `💬 Консультант ответил в чате (запись #${bookingId})\n\n"${preview}"\n\n` +
-        `👉 Открыть чат: ${env.BASE_URL || 'https://antinarkologia.ru'}/lk.html`
-      )
-    }
-  }
-}
-
-async function findUserTelegramChatId(db: D1Database, bookingId: string): Promise<string | null> {
-  // telegram_bot_chat_id — опциональное поле, добавляется через миграцию 0005
-  // Возвращает null если поле ещё не добавлено или не заполнено
-  try {
-    const row = await db
-      .prepare(`
-        SELECT u.telegram_bot_chat_id
-        FROM bookings b
-        JOIN users u ON u.id = b.user_id
-        WHERE b.id = ?
-      `)
-      .bind(bookingId)
-      .first<{ telegram_bot_chat_id: string | null }>()
-    return row?.telegram_bot_chat_id || null
-  } catch {
-    return null  // колонка ещё не добавлена
-  }
-}
-
-async function sendTelegramNotification(
-  botToken: string,
-  chatId: string,
-  text: string
-) {
-  await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      parse_mode: 'HTML'
+    await fetch(`${proxyBase}/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: booking.consultant_tg_id,
+        text: `💬 Новое сообщение в чате (запись #${bookingId})\nОт: ${clientName}\n\n"${preview}"\n\n👉 Ответить: ${baseUrl}/consultant.html`,
+        parse_mode: 'HTML'
+      })
     })
-  })
+  } else if (senderType === 'consultant' && booking.user_tg_chat_id) {
+    await fetch(`${proxyBase}/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: booking.user_tg_chat_id,
+        text: `💬 Консультант ответил в чате (запись #${bookingId})\n\n"${preview}"\n\n👉 Открыть чат: ${baseUrl}/lk.html`,
+        parse_mode: 'HTML'
+      })
+    })
+  }
 }
 
 export default chat

@@ -6,6 +6,7 @@ import { Hono } from 'hono'
 import { requireAuth } from '../middleware/auth'
 import { YukassaClient } from '../lib/yukassa'
 import { sendEmail, sendTelegram, bookingPaidEmail, newBookingConsultantTelegram } from '../lib/notify'
+import { addSystemChatMessage } from './chat'
 import type { Bindings, Variables } from '../types'
 
 const payments = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -81,6 +82,12 @@ payments.post('/webhook', async (c) => {
       `)
       .bind(payment.booking_id)
       .run()
+
+    // Системное сообщение в чат — оплата прошла
+    await addSystemChatMessage(
+      c.env.DB, payment.booking_id,
+      '✅ Оплата получена! Запись подтверждена.\n\nКонсультант скоро свяжется с вами. Вы можете написать ему прямо здесь.'
+    )
 
     // Загружаем данные для уведомлений
     const booking = await c.env.DB
@@ -177,6 +184,12 @@ payments.post('/webhook', async (c) => {
       .prepare("UPDATE bookings SET status = 'cancelled', updated_at = datetime('now') WHERE id = ? AND status = 'pending_payment'")
       .bind(payment.booking_id)
       .run()
+
+    // Системное сообщение в чат — оплата не прошла
+    await addSystemChatMessage(
+      c.env.DB, payment.booking_id,
+      '❌ Оплата не прошла или была отменена.\n\nЕсли вы хотите продолжить — создайте новую запись в личном кабинете.'
+    )
   }
 
   return c.json({ ok: true })
