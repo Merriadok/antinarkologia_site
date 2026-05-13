@@ -6,7 +6,7 @@ import { Hono } from 'hono'
 import { requireAuth } from '../middleware/auth'
 import { YukassaClient } from '../lib/yukassa'
 import { sendEmail, sendTelegram, bookingPaidEmail, newBookingConsultantTelegram } from '../lib/notify'
-import { addSystemChatMessage } from './chat'
+import { addSystemChatMessage } from '../lib/chat_utils'
 import type { Bindings, Variables } from '../types'
 
 const payments = new Hono<{ Bindings: Bindings; Variables: Variables }>()

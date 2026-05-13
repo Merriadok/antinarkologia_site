@@ -284,6 +284,11 @@ function renderBookingCard(b, isUpcoming) {
       contactLinks.push(`<button class="btn btn-outline btn-sm" onclick="openChat(${b.id})">💬 Чат с консультантом</button>`)
     }
 
+    // История чата — для завершённых/отменённых записей (readonly)
+    if (['cancelled', 'completed', 'refunded'].includes(b.status)) {
+      contactLinks.push(`<button class="btn btn-outline btn-sm" onclick="openChat(${b.id}, true)">📜 История чата</button>`)
+    }
+
     // Кнопка «Выбрать время» — если слот не выбран и нет pending-предложения
     if (!b.slot_starts_at && !b.proposed_time && ['pending_payment', 'paid'].includes(b.status)) {
       contactLinks.push(`<button class="btn btn-outline btn-sm" onclick="openChooseSlot(${b.id})">📅 Выбрать время</button>`)
@@ -1144,15 +1149,44 @@ async function saveProfile() {
 
 let chatPollTimer = null
 
-async function openChat(bookingId) {
+async function openChat(bookingId, readonly = false) {
   const modal = document.getElementById('modal-root')
+  const title = readonly
+    ? `📜 История чата — запись #${bookingId}`
+    : `💬 Чат с консультантом — запись #${bookingId}`
+
+  const inputBlock = readonly ? `
+    <div style="padding:12px 16px;border-top:1px solid var(--c-border);background:#f8f9fa;text-align:center">
+      <span style="font-size:13px;color:var(--c-muted)">
+        🔒 Запись завершена или отменена — отправка сообщений недоступна
+      </span>
+    </div>
+  ` : `
+    <div style="padding:12px 16px;border-top:1px solid var(--c-border);background:#fff">
+      <div style="display:flex;gap:8px">
+        <textarea id="chat-input" class="form-textarea"
+          rows="2" style="margin:0;flex:1;resize:none;font-size:14px"
+          placeholder="Напишите сообщение..."
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage(${bookingId})}">
+        </textarea>
+        <button class="btn btn-primary" style="align-self:flex-end;white-space:nowrap"
+                onclick="sendChatMessage(${bookingId})">
+          Отправить
+        </button>
+      </div>
+      <div style="font-size:11px;color:var(--c-muted);margin-top:4px">
+        Enter — отправить · Shift+Enter — новая строка
+      </div>
+    </div>
+  `
+
   modal.innerHTML = `
     <div class="modal-overlay" onclick="closeChat()">
       <div class="modal" onclick="event.stopPropagation()"
            style="max-width:520px;height:80vh;display:flex;flex-direction:column">
 
         <div class="modal-header">
-          <div class="modal-title">💬 Чат с консультантом — запись #${bookingId}</div>
+          <div class="modal-title">${title}</div>
           <button class="modal-close" onclick="closeChat()">✕</button>
         </div>
 
@@ -1165,23 +1199,7 @@ async function openChat(bookingId) {
           <div class="loading-overlay"><div class="spinner"></div> Загрузка...</div>
         </div>
 
-        <!-- Ввод -->
-        <div style="padding:12px 16px;border-top:1px solid var(--c-border);background:#fff">
-          <div style="display:flex;gap:8px">
-            <textarea id="chat-input" class="form-textarea"
-              rows="2" style="margin:0;flex:1;resize:none;font-size:14px"
-              placeholder="Напишите сообщение..."
-              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage(${bookingId})}">
-            </textarea>
-            <button class="btn btn-primary" style="align-self:flex-end;white-space:nowrap"
-                    onclick="sendChatMessage(${bookingId})">
-              Отправить
-            </button>
-          </div>
-          <div style="font-size:11px;color:var(--c-muted);margin-top:4px">
-            Enter — отправить · Shift+Enter — новая строка
-          </div>
-        </div>
+        ${inputBlock}
 
       </div>
     </div>
@@ -1189,13 +1207,14 @@ async function openChat(bookingId) {
 
   await loadChatMessages(bookingId)
 
-  // Помечаем прочитанными
-  try { await API.post(`/chat/${bookingId}/read`) } catch(_) {}
-
-  // Автообновление каждые 8 секунд
-  chatPollTimer = setInterval(async () => {
-    await loadChatMessages(bookingId, true)
-  }, 8000)
+  if (!readonly) {
+    // Помечаем прочитанными только если чат активен
+    try { await API.post(`/chat/${bookingId}/read`) } catch(_) {}
+    // Автообновление каждые 8 секунд
+    chatPollTimer = setInterval(async () => {
+      await loadChatMessages(bookingId, true)
+    }, 8000)
+  }
 }
 window.openChat = openChat
 

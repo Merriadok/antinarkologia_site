@@ -17,6 +17,7 @@ import type { Bindings, Variables } from '../types'
 const chat = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
 // ---- Вспомогательная: проверить доступ к чату ----
+// Просмотр разрешён для ВСЕХ статусов (включая cancelled/completed)
 async function canAccessChat(
   db: D1Database,
   bookingId: string,
@@ -32,24 +33,28 @@ async function canAccessChat(
   return booking.user_id === userId
 }
 
-// ---- Вспомогательная: добавить системное сообщение в чат ----
-export async function addSystemChatMessage(
+// ---- Вспомогательная: проверить можно ли ПИСАТЬ в чат ----
+// Закрытые статусы: запись завершена или отменена — клиент не может писать
+const CLOSED_STATUSES = ['cancelled', 'completed', 'refunded'] as const
+
+async function canSendMessage(
   db: D1Database,
-  bookingId: number | string,
-  body: string
-): Promise<void> {
-  try {
-    await db
-      .prepare(`
-        INSERT INTO chat_messages (booking_id, sender_type, sender_id, body)
-        VALUES (?, 'system', 0, ?)
-      `)
-      .bind(String(bookingId), body)
-      .run()
-  } catch (err) {
-    console.error(`[chat] addSystemChatMessage error bookingId=${bookingId}:`, err)
+  bookingId: string,
+  role: string
+): Promise<{ allowed: boolean; reason?: string }> {
+  if (role === 'consultant') return { allowed: true } // консультант всегда может писать
+  const booking = await db
+    .prepare('SELECT status FROM bookings WHERE id = ?')
+    .bind(bookingId)
+    .first<{ status: string }>()
+  if (!booking) return { allowed: false, reason: 'Запись не найдена' }
+  if ((CLOSED_STATUSES as readonly string[]).includes(booking.status)) {
+    return { allowed: false, reason: 'Чат закрыт — запись завершена или отменена' }
   }
+  return { allowed: true }
 }
+
+// addSystemChatMessage вынесена в src/lib/chat_utils.ts (избегаем circular import)
 
 // ---- GET /api/chat/:bookingId — история сообщений ----
 chat.get('/:bookingId', requireAuth, async (c) => {
@@ -90,6 +95,12 @@ chat.post('/:bookingId', requireAuth, async (c) => {
 
   if (!(await canAccessChat(c.env.DB, bookingId, userId, role))) {
     return c.json({ error: 'Доступ запрещён' }, 403)
+  }
+
+  // Проверяем можно ли писать (закрытые записи — только просмотр)
+  const sendCheck = await canSendMessage(c.env.DB, bookingId, role)
+  if (!sendCheck.allowed) {
+    return c.json({ error: sendCheck.reason || 'Отправка сообщений недоступна' }, 403)
   }
 
   const { body } = await c.req.json()

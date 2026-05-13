@@ -151,6 +151,9 @@ function renderUpcomingCard(b) {
         <button class="btn btn-outline btn-sm btn-open-booking" data-id="${b.id}">
           📝 Детали / Ссылка
         </button>
+        <button class="btn btn-outline btn-sm" onclick="openConsultantChat(${b.id})">
+          💬 Чат
+        </button>
       </div>
     </div>
   `
@@ -258,9 +261,12 @@ async function loadBookingsList() {
                 <td style="font-size:13px;white-space:nowrap">${slotDate}</td>
                 <td style="font-size:13px">${Fmt.meetingFormat(b.meeting_format)}</td>
                 <td>${Fmt.statusBadge(b.status)}</td>
-                <td>
+                <td style="display:flex;gap:6px;flex-wrap:wrap">
                   <button class="btn btn-outline btn-sm btn-open-booking" data-id="${b.id}">
                     Детали
+                  </button>
+                  <button class="btn btn-outline btn-sm" onclick="openConsultantChat(${b.id})">
+                    💬
                   </button>
                 </td>
               </tr>
@@ -1209,7 +1215,7 @@ async function loadConsultantChatMessages(bookingId, silent = false) {
     if (messages.length === 0) {
       container.innerHTML = `
         <div style="text-align:center;color:var(--c-muted);padding:40px 20px;font-size:14px">
-          Сообщений пока нет.<br>Клиент сможет написать после оплаты.
+          Сообщений пока нет.<br>Клиент может написать в любое время после создания записи.
         </div>
       `
       return
