@@ -271,8 +271,48 @@ function renderBookingCard(b, isUpcoming) {
             📹 Ссылка TeleМост — будет добавлена консультантом
           </span>`)
       }
-    } else if ((b.status === 'paid' || b.status === 'in_progress') && b.meeting_format === 'telegram' && b.consultant_telegram) {
-      contactLinks.push(`<a href="https://t.me/${b.consultant_telegram}" target="_blank" class="btn btn-outline btn-sm">✈️ Telegram консультанта</a>`)
+    } else if ((b.status === 'paid' || b.status === 'in_progress') && b.meeting_format === 'telegram') {
+      // Умный блок для формата "Telegram"
+      const hasTgUrl     = !!b.consultant_telegram_url
+      const clientHasTg  = !!(currentUser.telegram_username || currentUser.telegram_bot_chat_id)
+
+      if (hasTgUrl) {
+        // Консультант заполнил ссылку — показываем кнопку
+        contactLinks.push(`<a href="${b.consultant_telegram_url}" target="_blank" class="btn btn-outline btn-sm">✈️ Telegram консультанта</a>`)
+        if (!clientHasTg) {
+          // У клиента нет TG-контакта — предупреждение
+          contactLinks.push(`
+            <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;background:#fffbeb;
+                        border:1px solid #fcd34d;border-radius:8px;font-size:13px;color:#92400e;max-width:360px">
+              <span style="flex-shrink:0">⚠️</span>
+              <span>Чтобы консультант мог найти вас в Telegram, укажите <strong>@username</strong> или подключите бота в
+                <button onclick="navigate('profile')" style="background:none;border:none;padding:0;color:#92400e;
+                  text-decoration:underline;cursor:pointer;font-size:inherit">профиле</button>.
+              </span>
+            </div>`)
+        }
+      } else {
+        // Консультант ещё не заполнил telegram_url
+        if (clientHasTg) {
+          // Клиент есть в TG — сообщаем что консультант напишет сам
+          contactLinks.push(`
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;
+                  background:#f0f6ff;border-radius:6px;font-size:13px;color:var(--c-muted);border:1px solid var(--c-border)">
+              ✈️ Консультант свяжется с вами в Telegram
+            </span>`)
+        } else {
+          // Нет ни ссылки консультанта, ни TG у клиента — двойное предупреждение
+          contactLinks.push(`
+            <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;background:#fffbeb;
+                        border:1px solid #fcd34d;border-radius:8px;font-size:13px;color:#92400e;max-width:360px">
+              <span style="flex-shrink:0">⚠️</span>
+              <span>Укажите <strong>@username Telegram</strong> или подключите бота, чтобы консультант смог с вами связаться. →
+                <button onclick="navigate('profile')" style="background:none;border:none;padding:0;color:#92400e;
+                  text-decoration:underline;cursor:pointer;font-size:inherit">Перейти в профиль</button>
+              </span>
+            </div>`)
+        }
+      }
     } else if ((b.status === 'paid' || b.status === 'in_progress') && b.meeting_format === 'max') {
       contactLinks.push(`<span style="font-size:13px;color:var(--c-muted);padding:6px 0;display:inline-block">💙 Консультант напишет в Макс в согласованное время</span>`)
     } else if ((b.status === 'paid' || b.status === 'in_progress') && b.meeting_format === 'phone') {

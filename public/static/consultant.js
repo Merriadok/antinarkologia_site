@@ -70,7 +70,7 @@ async function navigate(page) {
 async function renderDashboard() {
   const main = document.getElementById('main')
 
-  const { stats, upcoming } = await API.get('/consultant/dashboard')
+  const { stats, upcoming, consultant } = await API.get('/consultant/dashboard')
 
   const statCards = [
     { label: 'Ожидают оплаты', value: stats.pending,  icon: '⏳', color: '#f59e0b' },
@@ -95,6 +95,22 @@ async function renderDashboard() {
         </div>
       `).join('')}
     </div>
+
+    <!-- Предупреждение: не заполнена Telegram-ссылка, но включён формат Telegram -->
+    ${(consultant.supports_telegram && !consultant.telegram_url) ? `
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 16px;margin-bottom:20px;
+                  background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;font-size:13px;color:#92400e">
+        <span style="font-size:18px;flex-shrink:0">⚠️</span>
+        <div>
+          <strong>Не заполнена Telegram-ссылка</strong> — у вас включён формат консультации «Telegram / Макс»,
+          но клиенты не смогут перейти к вам напрямую.<br>
+          <span style="color:#a16207">Укажите ссылку вида <code>https://t.me/ваш_ник</code> или номер телефона
+          в разделе <button onclick="navigate('profile')" style="background:none;border:none;padding:0;
+            color:#92400e;text-decoration:underline;cursor:pointer;font-weight:600;font-size:inherit"
+          >Профиль → Форматы и контакты</button>.</span>
+        </div>
+      </div>
+    ` : ''}
 
     <!-- Ближайшие встречи -->
     <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--c-muted)">
@@ -1018,7 +1034,10 @@ async function renderProfile() {
           <div class="form-group">
             <label class="form-label">💬 Telegram-ссылка</label>
             <input class="form-input" id="p-telegram-url" value="${p.telegram_url || ''}" placeholder="https://t.me/your_username">
-            <div class="form-hint">Ссылка для перехода в Telegram</div>
+            <div class="form-hint">
+              Ссылка для клиентов — формат: <code>https://t.me/ваш_ник</code> или <code>https://t.me/+79001234567</code> (по номеру телефона).
+              ${p.supports_telegram && !p.telegram_url ? '<span style="color:#b45309;font-weight:600"> ⚠️ Не заполнено — клиенты не смогут перейти к вам в Telegram!</span>' : ''}
+            </div>
           </div>
 
           <div class="form-group">

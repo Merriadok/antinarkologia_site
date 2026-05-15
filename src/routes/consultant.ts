@@ -58,6 +58,11 @@ consultant.get('/dashboard', requireConsultant, async (c) => {
     c.env.DB.prepare("SELECT COALESCE(SUM(t.price_rub), 0) as total FROM bookings b JOIN tariffs t ON t.id = b.tariff_id WHERE b.status IN ('paid', 'completed')").first<{ total: number }>()
   ])
 
+  // Профиль консультанта (для предупреждений на дашборде)
+  const consultantProfile = await c.env.DB
+    .prepare('SELECT telegram_url, telegram_chat_id, supports_telegram FROM consultants WHERE is_active = 1 LIMIT 1')
+    .first<{ telegram_url: string | null; telegram_chat_id: string | null; supports_telegram: number }>()
+
   // Ближайшие записи
   const upcoming = await c.env.DB
     .prepare(`
@@ -84,6 +89,11 @@ consultant.get('/dashboard', requireConsultant, async (c) => {
       paid: paid?.cnt || 0,
       total: total?.cnt || 0,
       revenue: revenue?.total || 0
+    },
+    consultant: {
+      telegram_url:      consultantProfile?.telegram_url      || null,
+      telegram_chat_id:  consultantProfile?.telegram_chat_id  || null,
+      supports_telegram: consultantProfile?.supports_telegram  ?? 1,
     },
     upcoming: upcoming.results
   })
