@@ -195,7 +195,7 @@ async function notifyNewMessage(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: booking.consultant_tg_id,
-        text: `💬 Новое сообщение в чате (запись #${bookingId})\nОт: ${clientName}\n\n"${preview}"\n\n👉 Ответить: ${baseUrl}/consultant.html`,
+        text: `💬 Сообщение клиента (запись #${bookingId})\nОт: ${clientName}\n\n"${preview}"\n\n↩️ Reply на это сообщение → ответ попадёт в чат\n👉 ${baseUrl}/consultant.html`,
         parse_mode: 'HTML'
       })
     })

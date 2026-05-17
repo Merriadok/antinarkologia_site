@@ -5,13 +5,15 @@
 // Функционал:
 //   1. /start — регистрирует telegram_bot_chat_id для пользователя
 //      по коду подтверждения (клиент вводит в боте свой user_id или код)
-//   2. Текстовые сообщения — перенаправляет в активный чат записи
-//   3. Уведомление об ответе консультанта клиенту
+//   2. reply_to_message от консультанта — ответ попадает в чат на сайте
+//      Консультант получает уведомление → делает Reply в Telegram →
+//      бот разбирает booking_id из текста уведомления → сохраняет в chat_messages
+//   3. Текстовые сообщения клиента — перенаправляет в активный чат записи
+//   4. Уведомление об ответе консультанта клиенту
 //
 // ВАЖНО — паттерн waitUntil:
-//   Telegram ждёт ответ ≤ 10 сек. Вся обработка (DB + tgSend) идёт
-//   через c.executionCtx.waitUntil() ПОСЛЕ return c.json({ok:true}).
-//   Это устраняет таймаут 20 сек из PM2-логов.
+//   В miniflare (dev/VPS wrangler 4.x) waitUntil ненадёжен для внешних fetch.
+//   Используем await Promise.race([processUpdate, timeout(8s)]).
 //
 // Прокси:
 //   Российский хостер блокирует api.telegram.org напрямую.
@@ -60,6 +62,86 @@ async function processUpdate(env: Bindings & { TELEGRAM_BOT_TOKEN: string }, upd
   const from   = msg.from?.username || msg.from?.first_name || 'Пользователь'
 
   console.log(`[tgBot] update chatId=${chatId} text="${text.slice(0, 50)}"`)
+
+  // ---- Reply от консультанта → сохранить в чат ----
+  // Когда консультант делает Reply на уведомление бота в Telegram,
+  // update.message.reply_to_message будет присутствовать.
+  // Проверяем: является ли отправитель консультантом и есть ли reply.
+  if (msg.reply_to_message && text && !text.startsWith('/')) {
+    const consultant = await (env.DB as D1Database)
+      .prepare('SELECT id, telegram_chat_id, display_name FROM consultants WHERE is_active = 1 LIMIT 1')
+      .first<{ id: number; telegram_chat_id: string | null; display_name: string | null }>()
+
+    if (consultant?.telegram_chat_id && String(chatId) === String(consultant.telegram_chat_id)) {
+      // Консультант ответил — ищем booking_id в тексте оригинального уведомления
+      const originalText: string = msg.reply_to_message.text || ''
+      // Ищем паттерны вида: "запись #123" или "(запись #123)" или "booking #123"
+      const bookingMatch = originalText.match(/(?:запись|booking)\s*#?(\d+)/i)
+
+      if (bookingMatch) {
+        const bookingId = bookingMatch[1]
+
+        // Проверяем что запись существует и активна
+        const booking = await (env.DB as D1Database)
+          .prepare(`
+            SELECT b.id, b.user_id, u.telegram_bot_chat_id as user_tg_chat_id, u.display_name as client_name
+            FROM bookings b
+            LEFT JOIN users u ON u.id = b.user_id
+            WHERE b.id = ? AND b.status NOT IN ('cancelled', 'refunded')
+          `)
+          .bind(bookingId)
+          .first<{
+            id: number
+            user_id: number
+            user_tg_chat_id: string | null
+            client_name: string | null
+          }>()
+
+        if (booking) {
+          // Сохраняем ответ консультанта в chat_messages
+          await (env.DB as D1Database)
+            .prepare('INSERT INTO chat_messages (booking_id, sender_type, sender_id, body) VALUES (?, ?, ?, ?)')
+            .bind(bookingId, 'consultant', consultant.id, text)
+            .run()
+
+          console.log(`[tgBot] Consultant reply saved to booking #${bookingId}: "${text.slice(0, 50)}"`)
+
+          // Подтверждение консультанту
+          const consultantName = consultant.display_name || 'Консультант'
+          await tgSend(token, chatId,
+            `✅ Ваш ответ сохранён в чат (запись #${bookingId}).\n` +
+            `Клиент увидит его на сайте:\n` +
+            `🔗 https://antinarkologia.ru/consultant.html`
+          )
+
+          // Уведомление клиенту (если привязан к боту)
+          if (booking.user_tg_chat_id) {
+            const preview = text.length > 150 ? text.slice(0, 147) + '…' : text
+            await tgSend(token, booking.user_tg_chat_id,
+              `💬 <b>Консультант ответил</b> в чате (запись #${bookingId})\n\n` +
+              `"${preview}"\n\n` +
+              `👉 <a href="https://antinarkologia.ru/lk.html">Открыть чат</a>`
+            )
+          }
+
+          return
+        } else {
+          // Запись не найдена или закрыта
+          await tgSend(token, chatId,
+            `⚠️ Запись #${bookingId} не найдена или завершена. Ответ не сохранён.`
+          )
+          return
+        }
+      } else {
+        // Reply есть, консультант совпал, но booking_id не распознан
+        await tgSend(token, chatId,
+          `⚠️ Не удалось определить номер записи из уведомления.\n` +
+          `Убедитесь что отвечаете именно на уведомление о сообщении клиента.`
+        )
+        return
+      }
+    }
+  }
 
   // ---- /start <code> — привязка аккаунта ----
   if (text.startsWith('/start')) {
@@ -243,8 +325,9 @@ async function processUpdate(env: Bindings & { TELEGRAM_BOT_TOKEN: string }, upd
 
   if (consultant?.telegram_chat_id) {
     await tgSend(token, consultant.telegram_chat_id,
-      `💬 Новое сообщение (запись #${booking.id}):\n\n` +
+      `💬 Сообщение клиента (запись #${booking.id}):\n\n` +
       `От: ${from}\n"${text.length > 150 ? text.slice(0, 147) + '…' : text}"\n\n` +
+      `↩️ Ответьте Reply на это сообщение — ответ попадёт в чат на сайте\n` +
       `👉 https://antinarkologia.ru/consultant.html`
     )
   }
