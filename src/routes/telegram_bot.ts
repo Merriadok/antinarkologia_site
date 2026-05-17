@@ -274,14 +274,29 @@ bot.post('/webhook', async (c) => {
   const msg = update.message || update.edited_message
   if (!msg) return c.json({ ok: true })
 
-  // 2. НЕМЕДЛЕННО отвечаем Telegram — до любых await DB/fetch
-  //    Вся логика уходит в фон через waitUntil
-  c.executionCtx.waitUntil(
-    processUpdate({ ...c.env, TELEGRAM_BOT_TOKEN: token }, update)
-      .catch(err => console.error('[tgBot] processUpdate error:', err))
-  )
+  // 2. Обрабатываем update с таймаутом 8 секунд
+  //    Telegram ждёт до 10 сек — у нас 8 сек запас.
+  //    В настоящем CF Workers: waitUntil даёт время после return.
+  //    В miniflare (dev/VPS): waitUntil ненадёжен для внешних fetch,
+  //    поэтому await processUpdate напрямую (до return).
+  //    tgSend через прокси занимает ~200-500ms — в лимит укладываемся.
+  const timeoutMs = 8000
+  try {
+    await Promise.race([
+      processUpdate({ ...c.env, TELEGRAM_BOT_TOKEN: token }, update),
+      new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error('processUpdate timeout')), timeoutMs)
+      )
+    ])
+  } catch (err: any) {
+    if (err?.message === 'processUpdate timeout') {
+      console.warn(`[tgBot] processUpdate exceeded ${timeoutMs}ms — still returning ok`)
+    } else {
+      console.error('[tgBot] processUpdate error:', err)
+    }
+  }
 
-  // 3. Ответ Telegram получает < 1 мс — таймаут устранён
+  // 3. Отвечаем Telegram (успели до таймаута или нет — всегда ok)
   return c.json({ ok: true })
 })
 
